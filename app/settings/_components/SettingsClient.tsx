@@ -1,0 +1,212 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import type { CompanySettings } from '../page'
+import { getToken } from '@/app/lib/auth'
+import { useLang } from '@/app/_components/LangProvider'
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+interface Props {
+  settings: CompanySettings | null
+  fetchError: string
+}
+
+export default function SettingsClient({ settings, fetchError }: Props) {
+  const router = useRouter()
+  const { locale, t } = useLang()
+
+  const [companyName, setCompanyName] = useState(settings?.company_name ?? 'EXCELLENTIA')
+  const [subtitle,    setSubtitle]    = useState(settings?.subtitle ?? 'Ticket de Venta')
+  const [address,     setAddress]     = useState(settings?.address ?? '')
+  const [phone,       setPhone]       = useState(settings?.phone ?? '')
+  const [city,        setCity]        = useState(settings?.city ?? '')
+  const [saving,      setSaving]      = useState(false)
+  const [msg,         setMsg]         = useState<{ text: string; ok: boolean } | null>(null)
+
+  function flash(text: string, ok: boolean) {
+    setMsg({ text, ok })
+    setTimeout(() => setMsg(null), 4000)
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const res = await fetch(`${API}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          company_name: companyName,
+          subtitle,
+          address: address || null,
+          phone:   phone   || null,
+          city:    city    || null,
+        }),
+      })
+      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error ?? `Error ${res.status}`)
+      }
+      flash(t('cfg_saved'), true)
+      router.refresh()
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Error al guardar', false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-zinc-900">{t('cfg_title')}</h1>
+        <p className="mt-0.5 text-sm text-slate-500">{t('cfg_subtitle')}</p>
+      </div>
+
+      {msg && (
+        <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {msg.text}
+        </div>
+      )}
+      {fetchError && (
+        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{fetchError}</div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+        {/* Formulario */}
+        <form onSubmit={handleSave} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_formTitle')}</p>
+
+          <div className="space-y-4">
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">
+                  {t('cfg_companyName')} <span className="text-red-400">*</span>
+                </label>
+                <span className={`text-[10px] font-medium tabular-nums ${companyName.length > 33 ? 'text-red-500' : 'text-slate-400'}`}>
+                  {companyName.length}/33
+                </span>
+              </div>
+              <input type="text" required value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                placeholder="EXCELLENTIA"
+                maxLength={50}
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${companyName.length > 33 ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+              />
+              <p className="mt-1 text-xs text-slate-400">{t('cfg_companyHint')}</p>
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">{t('cfg_ticketSub')}</label>
+                <span className={`text-[10px] font-medium tabular-nums ${subtitle.length > 33 ? 'text-red-500' : 'text-slate-400'}`}>
+                  {subtitle.length}/33
+                </span>
+              </div>
+              <input type="text" value={subtitle}
+                onChange={e => setSubtitle(e.target.value)}
+                placeholder="Ticket de Venta"
+                maxLength={50}
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${subtitle.length > 33 ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_address')}</label>
+              <input type="text" value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="Av. Principal #123"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_city')}</label>
+                <input type="text" value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="Ciudad de México"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_phone')}</label>
+                <input type="tel" value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+52 55 1234 5678"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button type="submit" disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-60">
+              {saving ? (
+                <>
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  {t('cfg_saving')}
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  {t('cfg_save')}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Preview del ticket */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_previewTitle')}</p>
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 font-mono text-xs">
+            <p className="text-center text-sm font-bold tracking-widest">{companyName || 'EMPRESA'}</p>
+            <p className="text-center text-slate-500">{subtitle || 'Ticket de Venta'}</p>
+            {city && <p className="text-center text-slate-400">{city}</p>}
+            {address && <p className="text-center text-slate-400">{address}</p>}
+            {phone && <p className="text-center text-slate-400">{phone}</p>}
+            <div className="my-3 border-t border-dashed border-slate-300" />
+            <p className="text-center text-slate-400">dd/MM/yyyy HH:mm</p>
+            <p className="text-center">Pedido #XXXXXXXX</p>
+            <p className="text-center">Cliente: Nombre Cliente</p>
+            <div className="my-3 border-t border-dashed border-slate-300" />
+            <div className="mb-1">
+              <p className="font-semibold">Producto Ejemplo</p>
+              <p className="text-slate-500">123456 · $30.00/lb</p>
+              <p className="flex justify-between"><span>1.50 lb</span><span>$45.00</span></p>
+            </div>
+            <div className="my-3 border-t border-dashed border-slate-300" />
+            <p className="text-center font-bold">TOTAL</p>
+            <p className="text-center text-lg font-bold">$45.00</p>
+            <p className="text-center text-slate-400 mt-1">1.50 lb en total</p>
+            <p className="text-center text-slate-400 mt-3">{companyName || 'EMPRESA'}</p>
+          </div>
+          <p className="mt-3 text-xs text-slate-400">{t('cfg_previewNote')}</p>
+        </div>
+
+      </div>
+
+      {settings?.updated_at && (
+        <p className="mt-4 text-xs text-slate-400 text-right">
+          {t('cfg_lastUpdated')} {new Date(settings.updated_at).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
+          })}
+        </p>
+      )}
+    </div>
+  )
+}
