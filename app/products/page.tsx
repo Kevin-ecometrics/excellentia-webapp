@@ -41,7 +41,7 @@ export default async function ProductsPage() {
       cache: 'no-store',
     })
   } catch {
-    return <ProductsClient products={[]} fetchError="No se pudo conectar al servidor" isAdmin={isAdmin} />
+    return <ProductsClient products={[]} fetchError="Could not connect to the server" isAdmin={isAdmin} />
   }
 
   if (res.status === 401) redirect('/api/logout')
@@ -53,7 +53,7 @@ export default async function ProductsPage() {
     const data = await res.json()
     products = data.data ?? []
   } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error al cargar productos'
+    fetchError = e instanceof Error ? e.message : 'Error loading products'
   }
 
   return <ProductsClient products={products} fetchError={fetchError} isAdmin={isAdmin} />

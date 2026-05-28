@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       cache: 'no-store',
     })
   } catch {
-    return <SettingsClient settings={null} fetchError="No se pudo conectar al servidor" />
+    return <SettingsClient settings={null} fetchError="Could not connect to the server" />
   }
 
   if (res.status === 401) redirect('/api/logout')
@@ -38,7 +38,7 @@ export default async function SettingsPage() {
     const data = await res.json()
     settings = data.data
   } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error al cargar configuración'
+    fetchError = e instanceof Error ? e.message : 'Error loading settings'
   }
 
   return <SettingsClient settings={settings} fetchError={fetchError} />

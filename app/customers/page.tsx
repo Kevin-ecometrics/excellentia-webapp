@@ -23,7 +23,7 @@ export default async function CustomersPage() {
       cache: 'no-store',
     })
   } catch {
-    return <CustomersClient customers={[]} fetchError="No se pudo conectar al servidor" />
+    return <CustomersClient customers={[]} fetchError="Could not connect to the server" />
   }
 
   if (res.status === 401) redirect('/api/logout')
@@ -36,7 +36,7 @@ export default async function CustomersPage() {
     const data = await res.json()
     customers = data.data ?? []
   } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error al cargar clientes'
+    fetchError = e instanceof Error ? e.message : 'Error loading customers'
   }
 
   return <CustomersClient customers={customers} fetchError={fetchError} />

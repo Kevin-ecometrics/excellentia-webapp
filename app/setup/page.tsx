@@ -22,10 +22,10 @@ export default function SetupPage() {
         setDone(true);
       } else {
         setLog(data.log ?? []);
-        setError(data.error ?? 'Error desconocido');
+        setError(data.error ?? 'Unknown error');
       }
     } catch (e: any) {
-      setError(`No se pudo conectar con el servidor: ${e.message}`);
+      setError(`Could not connect to the server: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -41,10 +41,10 @@ export default function SetupPage() {
           {/* Header */}
           <div className="bg-zinc-900 px-6 py-5">
             <h1 className="text-white text-lg font-bold tracking-tight">
-              Excellentia — Setup inicial
+              Excellentia — Initial Setup
             </h1>
             <p className="text-zinc-400 text-sm mt-0.5">
-              Inicializa las tablas de la base de datos y el usuario administrador.
+              Initialize the database tables and the admin user.
             </p>
           </div>
 
@@ -53,10 +53,10 @@ export default function SetupPage() {
 
             {/* Advertencia */}
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-              <p className="font-semibold mb-1">Ejecutar solo una vez</p>
+              <p className="font-semibold mb-1">Run once only</p>
               <p className="text-amber-700">
-                Este proceso crea las tablas y el usuario admin si no existen.
-                Es seguro llamarlo varias veces — nunca borra datos existentes.
+                This process creates the tables and the admin user if they don't exist.
+                It is safe to call multiple times — it never deletes existing data.
               </p>
             </div>
 
@@ -75,10 +75,10 @@ export default function SetupPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
-                    Inicializando…
+                    Initializing…
                   </>
                 ) : (
-                  'Inicializar base de datos'
+                  'Initialize database'
                 )}
               </button>
             )}
@@ -105,56 +105,56 @@ export default function SetupPage() {
             {/* Error */}
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                <p className="font-semibold">Error</p>
+                <p className="font-semibold">Error!</p>
                 <p className="mt-0.5 font-mono text-xs">{error}</p>
               </div>
             )}
 
-            {/* Éxito — próximos pasos */}
+            {/* Success — next steps */}
             {done && !error && (
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-4 space-y-3">
                 <p className="text-sm font-semibold text-emerald-800">
-                  🎉 Setup completado
+                  🎉 Setup complete
                 </p>
                 <ol className="text-sm text-emerald-700 space-y-2 list-none">
                   <li className="flex gap-2">
                     <span className="font-bold">1.</span>
                     <span>
-                      Conecta QuickBooks →{' '}
+                      Connect QuickBooks →{' '}
                       <a
                         href={`${process.env.NEXT_PUBLIC_API_URL}/api/qb/auth`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline font-medium"
                       >
-                        Abrir flujo OAuth
+                        Open OAuth flow
                       </a>
                     </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="font-bold">2.</span>
                     <span>
-                      Sincroniza productos →{' '}
+                      Sync products →{' '}
                       <a href="/products" className="underline font-medium">
-                        Ir a Productos
+                        Go to Products
                       </a>
                     </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="font-bold">3.</span>
                     <span>
-                      Configura tu empresa →{' '}
+                      Configure company →{' '}
                       <a href="/settings" className="underline font-medium">
-                        Ir a Configuración
+                        Go to Settings
                       </a>
                     </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="font-bold">4.</span>
                     <span>
-                      Inicia sesión →{' '}
+                      Sign in →{' '}
                       <a href="/login" className="underline font-medium">
-                        Ir a Login
+                        Go to Login
                       </a>
                     </span>
                   </li>
@@ -166,7 +166,7 @@ export default function SetupPage() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-4">
-          Excellentia · Sistema de gestión de pedidos
+          Excellentia · Order Management System
         </p>
       </div>
     </div>

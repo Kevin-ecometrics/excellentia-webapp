@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: 'Excellentia — Dashboard',
-  description: 'Gestión de productos y pedidos',
+  description: 'Product and order management',
 }
 
 export type CurrentUser = { id: number; email: string; name?: string | null; role: 'admin' | 'operator' }
@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const currentUser = token ? decodeJwt(token) : null
 
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-dvh bg-slate-50 antialiased">
         <Suspense fallback={null}>
           <NavigationProgress />

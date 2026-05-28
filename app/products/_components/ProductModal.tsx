@@ -82,7 +82,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
       onSaved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al guardar')
+      setError(e instanceof Error ? e.message : 'Error saving')
     } finally {
       setSaving(false)
     }
@@ -112,7 +112,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_name')}</label>
             <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
-              className={fieldErrors.name ? inpErr : inp} placeholder="Ej: Queso Fresco" />
+              className={fieldErrors.name ? inpErr : inp} placeholder="e.g. Fresh Cheese" />
             {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
           </div>
 

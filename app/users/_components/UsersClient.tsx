@@ -28,7 +28,7 @@ const roleBadge: Record<string, string> = {
 
 function fmtDate(iso: string) {
   try {
-    return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+    return new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
   } catch { return '' }
 }
 
@@ -172,7 +172,7 @@ export default function UsersClient({ users, fetchError }: Props) {
       setName(''); setEmail(''); setPassword(''); setRole('operator'); setShowForm(false); setFormErrors({})
       router.refresh()
     } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error al crear usuario', false)
+      flash(e instanceof Error ? e.message : 'Error creating user', false)
     } finally {
       setCreating(false)
     }
@@ -200,7 +200,7 @@ export default function UsersClient({ users, fetchError }: Props) {
       setEditing(null)
       router.refresh()
     } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error al guardar', false)
+      flash(e instanceof Error ? e.message : 'Error saving', false)
     } finally {
       setSaving(false)
     }
@@ -223,7 +223,7 @@ export default function UsersClient({ users, fetchError }: Props) {
       setDeleteTarget(null)
       router.refresh()
     } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error al eliminar', false)
+      flash(e instanceof Error ? e.message : 'Error deleting', false)
       setDeleteTarget(null)
     } finally {
       setDeleting(false)
@@ -280,16 +280,16 @@ export default function UsersClient({ users, fetchError }: Props) {
                 <input
                   type="text" value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Juan Pérez"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_email')}</label>
+                    placeholder="John Doe"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_email')}</label>
                 <input
                   type="text" value={email}
                   onChange={e => { setEmail(e.target.value); setFormErrors(prev => ({ ...prev, email: '' })) }}
-                  placeholder="operador@empresa.com"
+                    placeholder="operator@company.com"
                   className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${formErrors.email ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
                 />
                 {formErrors.email && <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>}
@@ -419,9 +419,9 @@ export default function UsersClient({ users, fetchError }: Props) {
                               <input
                                 type="text" value={editing.name}
                                 onChange={e => setEditing({ ...editing, name: e.target.value })}
-                                placeholder="Juan Pérez"
-                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-                              />
+                placeholder="John Doe"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                />
                             </div>
                             <div>
                               <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_email')}</label>

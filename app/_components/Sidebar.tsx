@@ -26,7 +26,7 @@ function NavIcon({ children }: { children: React.ReactNode }) {
 
 export default function Sidebar({ user }: { user: CurrentUser }) {
   const pathname = usePathname()
-  const { locale, setLocale, t } = useLang()
+  const { t } = useLang()
   const isAdmin = user.role === 'admin'
   const displayName = user.name ?? user.email
   const initials = displayName.slice(0, 2).toUpperCase()
@@ -106,28 +106,6 @@ export default function Sidebar({ user }: { user: CurrentUser }) {
 
       {/* User footer */}
       <div className="border-t border-white/5 p-3 space-y-1">
-        {/* Lang toggle */}
-        <div className="flex items-center gap-1.5 px-3 py-2">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
-            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          <div className="flex rounded-md overflow-hidden border border-white/10">
-            <button
-              onClick={() => setLocale('es')}
-              className={`px-2 py-0.5 text-[10px] font-bold transition-colors ${locale === 'es' ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              ES
-            </button>
-            <button
-              onClick={() => setLocale('en')}
-              className={`px-2 py-0.5 text-[10px] font-bold transition-colors ${locale === 'en' ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              EN
-            </button>
-          </div>
-        </div>
-
         {/* User card */}
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-white/5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white uppercase shadow">

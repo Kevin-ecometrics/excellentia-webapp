@@ -23,7 +23,7 @@ export default async function UsersPage() {
       cache: 'no-store',
     })
   } catch {
-    return <UsersClient users={[]} fetchError="No se pudo conectar al servidor" />
+    return <UsersClient users={[]} fetchError="Could not connect to the server" />
   }
 
   if (res.status === 401) redirect('/api/logout')
@@ -36,7 +36,7 @@ export default async function UsersPage() {
     const data = await res.json()
     users = data.data ?? []
   } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error al cargar usuarios'
+    fetchError = e instanceof Error ? e.message : 'Error loading users'
   }
 
   return <UsersClient users={users} fetchError={fetchError} />

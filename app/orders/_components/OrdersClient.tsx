@@ -42,7 +42,7 @@ const statusCls: Record<string, string> = {
 
 function fmtDate(iso: string) {
   try {
-    return new Date(iso).toLocaleString('es-MX', {
+    return new Date(iso).toLocaleString('en-US', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: false,
     })
@@ -186,11 +186,11 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       const blob = await res.blob()
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = `pedidos_${new Date().toISOString().slice(0,10)}.csv`
+      a.download = `orders_${new Date().toISOString().slice(0,10)}.csv`
       a.click()
       URL.revokeObjectURL(a.href)
     } catch {
-      flash('Error al exportar', false)
+      flash('Error exporting', false)
     } finally {
       setExporting(false)
     }
@@ -205,10 +205,10 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
           headers: { Authorization: `Bearer ${getToken()}` },
         })
       ))
-      flash(`Batch #${batch.batchId.slice(-6)} enviado a la cola de sync`, true)
+      flash(`Batch #${batch.batchId.slice(-6)} sent to sync queue`, true)
       router.refresh()
     } catch {
-      flash('Error al forzar sync', false)
+      flash('Error forcing sync', false)
     } finally {
       setSyncing(null)
     }
@@ -536,12 +536,12 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                           <table className="w-full text-xs">
                             <thead>
                               <tr className="border-b border-slate-100 bg-slate-50">
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Producto</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Product</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Barcode</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Cantidad</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Precio/lb</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Quantity</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Price/lb</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Total</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Estado</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Status</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">

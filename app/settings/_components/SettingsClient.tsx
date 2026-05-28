@@ -15,10 +15,10 @@ interface Props {
 
 export default function SettingsClient({ settings, fetchError }: Props) {
   const router = useRouter()
-  const { locale, t } = useLang()
+  const { t } = useLang()
 
   const [companyName, setCompanyName] = useState(settings?.company_name ?? 'EXCELLENTIA')
-  const [subtitle,    setSubtitle]    = useState(settings?.subtitle ?? 'Ticket de Venta')
+  const [subtitle,    setSubtitle]    = useState(settings?.subtitle ?? 'Sale Ticket')
   const [address,     setAddress]     = useState(settings?.address ?? '')
   const [phone,       setPhone]       = useState(settings?.phone ?? '')
   const [city,        setCity]        = useState(settings?.city ?? '')
@@ -53,7 +53,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
       flash(t('cfg_saved'), true)
       router.refresh()
     } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error al guardar', false)
+      flash(e instanceof Error ? e.message : 'Error saving', false)
     } finally {
       setSaving(false)
     }
@@ -110,7 +110,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
               </div>
               <input type="text" value={subtitle}
                 onChange={e => setSubtitle(e.target.value)}
-                placeholder="Ticket de Venta"
+                placeholder="Sale Ticket"
                 maxLength={50}
                 className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${subtitle.length > 33 ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
               />
@@ -120,7 +120,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
               <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_address')}</label>
               <input type="text" value={address}
                 onChange={e => setAddress(e.target.value)}
-                placeholder="Av. Principal #123"
+                placeholder="123 Main Street"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -130,7 +130,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_city')}</label>
                 <input type="text" value={city}
                   onChange={e => setCity(e.target.value)}
-                  placeholder="Ciudad de México"
+                  placeholder="New York, NY"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_phone')}</label>
                 <input type="tel" value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  placeholder="+52 55 1234 5678"
+                  placeholder="+1 555 123 4567"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -174,24 +174,24 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_previewTitle')}</p>
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 font-mono text-xs">
             <p className="text-center text-sm font-bold tracking-widest">{companyName || 'EMPRESA'}</p>
-            <p className="text-center text-slate-500">{subtitle || 'Ticket de Venta'}</p>
+            <p className="text-center text-slate-500">{subtitle || 'Sale Ticket'}</p>
             {city && <p className="text-center text-slate-400">{city}</p>}
             {address && <p className="text-center text-slate-400">{address}</p>}
             {phone && <p className="text-center text-slate-400">{phone}</p>}
             <div className="my-3 border-t border-dashed border-slate-300" />
             <p className="text-center text-slate-400">dd/MM/yyyy HH:mm</p>
-            <p className="text-center">Pedido #XXXXXXXX</p>
-            <p className="text-center">Cliente: Nombre Cliente</p>
+            <p className="text-center">Order #XXXXXXXX</p>
+            <p className="text-center">Customer: John Doe</p>
             <div className="my-3 border-t border-dashed border-slate-300" />
             <div className="mb-1">
-              <p className="font-semibold">Producto Ejemplo</p>
+              <p className="font-semibold">Sample Product</p>
               <p className="text-slate-500">123456 · $30.00/lb</p>
               <p className="flex justify-between"><span>1.50 lb</span><span>$45.00</span></p>
             </div>
             <div className="my-3 border-t border-dashed border-slate-300" />
             <p className="text-center font-bold">TOTAL</p>
             <p className="text-center text-lg font-bold">$45.00</p>
-            <p className="text-center text-slate-400 mt-1">1.50 lb en total</p>
+            <p className="text-center text-slate-400 mt-1">1.50 lb total</p>
             <p className="text-center text-slate-400 mt-3">{companyName || 'EMPRESA'}</p>
           </div>
           <p className="mt-3 text-xs text-slate-400">{t('cfg_previewNote')}</p>
@@ -201,7 +201,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
 
       {settings?.updated_at && (
         <p className="mt-4 text-xs text-slate-400 text-right">
-          {t('cfg_lastUpdated')} {new Date(settings.updated_at).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX', {
+          {t('cfg_lastUpdated')} {new Date(settings.updated_at).toLocaleString('en-US', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false
           })}

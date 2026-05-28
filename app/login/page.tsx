@@ -23,14 +23,14 @@ export default function LoginPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || 'Credenciales incorrectas')
+        setError(data.error || 'Invalid credentials')
         return
       }
       const data = await res.json()
       document.cookie = `jwt=${data.token}; path=/; max-age=${7 * 86400}`
       window.location.href = data.user?.role === 'admin' ? '/dashboard' : '/orders'
     } catch {
-      setError('No se pudo conectar al servidor')
+      setError('Could not connect to the server')
     } finally {
       setLoading(false)
     }
@@ -56,18 +56,18 @@ export default function LoginPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 mb-4">OMS Platform</p>
           <h2 className="text-4xl font-bold text-white leading-tight mb-6">
-            Gestión de pedidos<br/>y sincronización<br/>con QuickBooks
+            Order Management<br/>and Real-Time Sync<br/>with QuickBooks
           </h2>
           <p className="text-blue-200 text-base leading-relaxed max-w-sm">
-            Administra productos, monitorea pedidos y mantén sincronización en tiempo real con QuickBooks Online desde un solo lugar.
+            Manage products, monitor orders, and keep real-time sync with QuickBooks Online from a single place.
           </p>
 
           {/* Feature bullets */}
           <ul className="mt-10 space-y-4">
             {[
-              'Sincronización automática con QuickBooks',
-              'Impresión de tickets vía Bluetooth',
-              'Gestión de productos con barcode y peso',
+              'Automatic sync with QuickBooks',
+              'Ticket printing via Bluetooth',
+              'Product management with barcode and weight',
             ].map(f => (
               <li key={f} className="flex items-center gap-3 text-sm text-blue-100">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15">
@@ -125,7 +125,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="tu@email.com"
+                placeholder="you@email.com"
                 className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-slate-400 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
                 required
               />

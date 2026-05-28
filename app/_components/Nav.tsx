@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/products',  label: 'Productos'  },
+  { href: '/products',  label: 'Products'  },
 ]
 
 export default function Nav() {
@@ -56,7 +56,7 @@ export default function Nav() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Salir
+          Log out
         </button>
       </div>
     </header>

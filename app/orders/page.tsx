@@ -52,12 +52,12 @@ export default async function OrdersPage() {
 
   let orders: OrderRow[] = []
   let fetchError = ''
-  let company: CompanyInfo = { company_name: 'EXCELLENTIA', subtitle: 'Ticket de Venta', address: null, phone: null, city: null }
+  let company: CompanyInfo = { company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null }
 
   if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
     try { orders = (await ordersRes.value.json()).data ?? [] } catch {}
   } else if (ordersRes.status === 'rejected') {
-    fetchError = 'No se pudo conectar al servidor'
+    fetchError = 'Could not connect to the server'
   }
 
   if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {

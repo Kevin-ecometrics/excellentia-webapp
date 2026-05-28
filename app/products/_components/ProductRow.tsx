@@ -57,7 +57,7 @@ export function ProductRow({ product, isAdmin, onEdit }: Props) {
         <td className="px-4 py-3">
           <button
             onClick={() => onEdit(product)}
-            title="Editar producto"
+            title="Edit product"
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-zinc-700 transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -32,7 +32,7 @@ interface Props {
 }
 
 export default function DashboardClient({ period, customFrom, customTo, kpis: k, byHour, byDay, top5, recent, products: prod }: Props) {
-  const { t, locale } = useLang()
+  const { t } = useLang()
   const maxTop = top5[0]?.total ?? 1
 
   const periodLabelMap: Record<Period, string> = {
@@ -48,7 +48,7 @@ export default function DashboardClient({ period, customFrom, customTo, kpis: k,
 
   function fmtDate(iso: string) {
     try {
-      return new Date(iso).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX', {
+      return new Date(iso).toLocaleString('en-US', {
         day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
       })
     } catch { return '' }
@@ -61,7 +61,7 @@ export default function DashboardClient({ period, customFrom, customTo, kpis: k,
     CANCELLED: t('ord_labelCancelled'),
   }
 
-  const todayFormatted = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', {
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   })
 
