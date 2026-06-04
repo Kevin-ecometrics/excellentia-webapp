@@ -1,8 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import UsersClient from './_components/UsersClient'
+'use client'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+import { useEffect, useState } from 'react'
+import UsersClient from './_components/UsersClient'
+import { getToken, logout } from '@/app/lib/auth'
 
 export interface UserRow {
   id: number
@@ -12,32 +12,29 @@ export interface UserRow {
   created_at: string
 }
 
-export default async function UsersPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-  let res: Response
-  try {
-    res = await fetch(`${API}/api/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-  } catch {
-    return <UsersClient users={[]} fetchError="Could not connect to the server" />
-  }
+export default function UsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [fetchError, setFetchError] = useState('')
+  const [ready, setReady] = useState(false)
 
-  if (res.status === 401) redirect('/api/logout')
-  if (res.status === 403) redirect('/dashboard')
+  useEffect(() => {
+    const token = getToken()
 
-  let users: UserRow[] = []
-  let fetchError = ''
-  try {
-    if (!res.ok) throw new Error(`Error ${res.status}`)
-    const data = await res.json()
-    users = data.data ?? []
-  } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error loading users'
-  }
+    fetch(`${API}/api/users`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (res.status === 403) { window.location.href = '/dashboard'; return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setUsers(data.data ?? []) })
+      .catch(e => setFetchError(e instanceof Error ? e.message : 'Could not connect to the server'))
+      .finally(() => setReady(true))
+  }, [])
+
+  if (!ready) return null
 
   return <UsersClient users={users} fetchError={fetchError} />
 }

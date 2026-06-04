@@ -163,7 +163,7 @@ export default function UsersClient({ users, fetchError }: Props) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password, role }),
       })
-      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)
@@ -191,7 +191,7 @@ export default function UsersClient({ users, fetchError }: Props) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(body),
       })
-      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)
@@ -214,7 +214,7 @@ export default function UsersClient({ users, fetchError }: Props) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}` },
       })
-      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)

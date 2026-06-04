@@ -1,8 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import CustomersClient from './_components/CustomersClient'
+'use client'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+import { useEffect, useState } from 'react'
+import CustomersClient from './_components/CustomersClient'
+import { getToken, logout } from '@/app/lib/auth'
 
 export interface CustomerStat {
   customer_id: string
@@ -12,32 +12,29 @@ export interface CustomerStat {
   last_order_at: string
 }
 
-export default async function CustomersPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-  let res: Response
-  try {
-    res = await fetch(`${API}/api/customers/stats`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-  } catch {
-    return <CustomersClient customers={[]} fetchError="Could not connect to the server" />
-  }
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<CustomerStat[]>([])
+  const [fetchError, setFetchError] = useState('')
+  const [ready, setReady] = useState(false)
 
-  if (res.status === 401) redirect('/api/logout')
-  if (res.status === 403) redirect('/dashboard')
+  useEffect(() => {
+    const token = getToken()
 
-  let customers: CustomerStat[] = []
-  let fetchError = ''
-  try {
-    if (!res.ok) throw new Error(`Error ${res.status}`)
-    const data = await res.json()
-    customers = data.data ?? []
-  } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error loading customers'
-  }
+    fetch(`${API}/api/customers/stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (res.status === 403) { window.location.href = '/dashboard'; return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setCustomers(data.data ?? []) })
+      .catch(e => setFetchError(e instanceof Error ? e.message : 'Could not connect to the server'))
+      .finally(() => setReady(true))
+  }, [])
+
+  if (!ready) return null
 
   return <CustomersClient customers={customers} fetchError={fetchError} />
 }

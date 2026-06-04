@@ -1,9 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import OrdersClient from './_components/OrdersClient'
-import type { CurrentUser } from '../layout'
+'use client'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+import { useEffect, useState } from 'react'
+import OrdersClient from './_components/OrdersClient'
+import { getToken, decodeJwt, logout } from '@/app/lib/auth'
 
 export interface OrderRow {
   id: number
@@ -17,17 +16,11 @@ export interface OrderRow {
   qb_invoice_id: string | null
   customer_id: string | null
   customer_name: string | null
+  signature: string | null
   user_id: number | null
   user_email: string | null
   user_name: string | null
   created_at: string
-}
-
-function decodeJwt(token: string): CurrentUser | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-    return { id: payload.id, email: payload.email, role: payload.role }
-  } catch { return null }
 }
 
 export interface CompanyInfo {
@@ -38,31 +31,46 @@ export interface CompanyInfo {
   city: string | null
 }
 
-export default async function OrdersPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
-  const currentUser = decodeJwt(token)
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-  const [ordersRes, settingsRes] = await Promise.allSettled([
-    fetch(`${API}/api/orders?limit=200`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }),
-    fetch(`${API}/api/settings`,          { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }),
-  ])
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<OrderRow[]>([])
+  const [fetchError, setFetchError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [company, setCompany] = useState<CompanyInfo>({ company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null })
+  const [ready, setReady] = useState(false)
 
-  if (ordersRes.status === 'fulfilled' && ordersRes.value.status === 401) redirect('/api/logout')
+  useEffect(() => {
+    const token = getToken()
+    const user = decodeJwt(token)
+    setIsAdmin(user?.role === 'admin')
 
-  let orders: OrderRow[] = []
-  let fetchError = ''
-  let company: CompanyInfo = { company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null }
+    const headers = { Authorization: `Bearer ${token}` }
 
-  if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
-    try { orders = (await ordersRes.value.json()).data ?? [] } catch {}
-  } else if (ordersRes.status === 'rejected') {
-    fetchError = 'Could not connect to the server'
-  }
+    Promise.allSettled([
+      fetch(`${API}/api/orders?limit=200`, { headers }),
+      fetch(`${API}/api/settings`, { headers }),
+    ]).then(async ([ordersRes, settingsRes]) => {
+      if (ordersRes.status === 'fulfilled') {
+        if (ordersRes.value.status === 401) { logout(); return }
+        if (ordersRes.value.ok) {
+          try { setOrders((await ordersRes.value.json()).data ?? []) } catch {}
+        } else {
+          setFetchError(`Error ${ordersRes.value.status}`)
+        }
+      } else {
+        setFetchError('Could not connect to the server')
+      }
 
-  if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
-    try { const d = await settingsRes.value.json(); if (d.data) company = d.data } catch {}
-  }
+      if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+        try { const d = await settingsRes.value.json(); if (d.data) setCompany(d.data) } catch {}
+      }
 
-  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={currentUser?.role === 'admin'} company={company} />
+      setReady(true)
+    })
+  }, [])
+
+  if (!ready) return null
+
+  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={isAdmin} company={company} />
 }

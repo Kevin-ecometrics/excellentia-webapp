@@ -1,16 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
 import ProductsClient from './_components/ProductsClient'
-import type { CurrentUser } from '../layout'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-
-function decodeJwt(token: string): CurrentUser | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-    return { id: payload.id, email: payload.email, name: payload.name ?? null, role: payload.role }
-  } catch { return null }
-}
+import { getToken, decodeJwt, logout } from '@/app/lib/auth'
 
 export interface Product {
   id: number
@@ -26,35 +18,31 @@ export interface Product {
   qb_item_id: string | null
 }
 
-export default async function ProductsPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
-  const currentUser = decodeJwt(token)
-  const isAdmin = currentUser?.role === 'admin'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-  // Fetch outside try-catch so redirect() can propagate — Next.js redirect
-  // throws internally and a catch block would swallow it.
-  let res: Response
-  try {
-    res = await fetch(`${API}/api/products?limit=500`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-  } catch {
-    return <ProductsClient products={[]} fetchError="Could not connect to the server" isAdmin={isAdmin} />
-  }
+export default function ProductsPage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [fetchError, setFetchError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [ready, setReady] = useState(false)
 
-  if (res.status === 401) redirect('/api/logout')
+  useEffect(() => {
+    const token = getToken()
+    const user = decodeJwt(token)
+    setIsAdmin(user?.role === 'admin')
 
-  let products: Product[] = []
-  let fetchError = ''
-  try {
-    if (!res.ok) throw new Error(`Error ${res.status}`)
-    const data = await res.json()
-    products = data.data ?? []
-  } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error loading products'
-  }
+    fetch(`${API}/api/products?limit=500`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setProducts(data.data ?? []) })
+      .catch(e => setFetchError(e instanceof Error ? e.message : 'Could not connect to the server'))
+      .finally(() => setReady(true))
+  }, [])
+
+  if (!ready) return null
 
   return <ProductsClient products={products} fetchError={fetchError} isAdmin={isAdmin} />
 }

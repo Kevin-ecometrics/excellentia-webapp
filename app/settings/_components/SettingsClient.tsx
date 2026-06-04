@@ -45,7 +45,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           city:    city    || null,
         }),
       })
-      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)

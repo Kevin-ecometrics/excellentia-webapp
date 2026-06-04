@@ -48,7 +48,7 @@ export default function ProductsClient({ products, fetchError, isAdmin }: Props)
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/api/logout'; return }
+      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
       if (!res.ok) throw new Error(`Error ${res.status}`)
       setSyncMsg({ text: t('prod_syncDone'), ok: true })
       router.refresh()

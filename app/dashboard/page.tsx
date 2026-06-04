@@ -1,17 +1,13 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import DateFilter from './_components/DateFilter'
 import DashboardClient from './_components/DashboardClient'
-import type { CurrentUser } from '../layout'
+import { getToken, decodeJwt, logout } from '@/app/lib/auth'
+import { Suspense } from 'react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-
-function decodeJwt(token: string): CurrentUser | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-    return { id: payload.id, email: payload.email, role: payload.role }
-  } catch { return null }
-}
 
 type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom'
 
@@ -25,38 +21,42 @@ interface Stats {
   products: { total: number; withQb: number; noBarcode: number; noWeight: number }
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: string; from?: string; to?: string }>
-}) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
-  const currentUser = decodeJwt(token)
-  const isAdmin = currentUser?.role === 'admin'
+function DashboardInner() {
+  const searchParams = useSearchParams()
+  const filter = searchParams.get('filter') ?? 'today'
+  const customFrom = searchParams.get('from') ?? undefined
+  const customTo = searchParams.get('to') ?? undefined
 
-  if (!isAdmin) redirect('/orders')
+  const validPeriods = ['today', 'yesterday', 'week', 'month', 'custom']
+  const period = (validPeriods.includes(filter) ? filter : 'today') as Period
 
-  const { filter, from: customFrom, to: customTo } = await searchParams
-  const validPeriods = ['today','yesterday','week','month','custom']
-  const period = (validPeriods.includes(filter ?? '') ? filter : 'today') as Period
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [ready, setReady] = useState(false)
 
-  const statsUrl = new URL(`${API}/api/stats`)
-  statsUrl.searchParams.set('period', period)
-  if (period === 'custom' && customFrom && customTo) {
-    statsUrl.searchParams.set('from', customFrom)
-    statsUrl.searchParams.set('to', customTo)
-  }
+  useEffect(() => {
+    const token = getToken()
+    const user = decodeJwt(token)
+    if (user?.role !== 'admin') { window.location.href = '/orders'; return }
 
-  let stats: Stats | null = null
-  try {
-    const res = await fetch(statsUrl.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-    if (res.status === 401) redirect('/api/logout')
-    if (res.ok) stats = await res.json()
-  } catch {}
+    const url = new URL(`${API}/api/stats`)
+    url.searchParams.set('period', period)
+    if (period === 'custom' && customFrom && customTo) {
+      url.searchParams.set('from', customFrom)
+      url.searchParams.set('to', customTo)
+    }
+
+    fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setStats(data) })
+      .catch(() => {})
+      .finally(() => setReady(true))
+  }, [period, customFrom, customTo])
+
+  if (!ready) return null
 
   const byHour = stats?.byHour ?? Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }))
 
@@ -78,5 +78,13 @@ export default async function DashboardPage({
         products={stats?.products}
       />
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardInner />
+    </Suspense>
   )
 }

@@ -1,8 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import SettingsClient from './_components/SettingsClient'
+'use client'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+import { useEffect, useState } from 'react'
+import SettingsClient from './_components/SettingsClient'
+import { getToken, logout } from '@/app/lib/auth'
 
 export interface CompanySettings {
   id: number
@@ -14,32 +14,29 @@ export interface CompanySettings {
   updated_at: string
 }
 
-export default async function SettingsPage() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('jwt')?.value ?? ''
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-  let res: Response
-  try {
-    res = await fetch(`${API}/api/settings`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-  } catch {
-    return <SettingsClient settings={null} fetchError="Could not connect to the server" />
-  }
+export default function SettingsPage() {
+  const [settings, setSettings] = useState<CompanySettings | null>(null)
+  const [fetchError, setFetchError] = useState('')
+  const [ready, setReady] = useState(false)
 
-  if (res.status === 401) redirect('/api/logout')
-  if (res.status === 403) redirect('/dashboard')
+  useEffect(() => {
+    const token = getToken()
 
-  let settings: CompanySettings | null = null
-  let fetchError = ''
-  try {
-    if (!res.ok) throw new Error(`Error ${res.status}`)
-    const data = await res.json()
-    settings = data.data
-  } catch (e) {
-    fetchError = e instanceof Error ? e.message : 'Error loading settings'
-  }
+    fetch(`${API}/api/settings`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (res.status === 403) { window.location.href = '/dashboard'; return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setSettings(data.data) })
+      .catch(e => setFetchError(e instanceof Error ? e.message : 'Could not connect to the server'))
+      .finally(() => setReady(true))
+  }, [])
+
+  if (!ready) return null
 
   return <SettingsClient settings={settings} fetchError={fetchError} />
 }
