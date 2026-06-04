@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CompanySettings } from '../page'
 import { getToken } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+interface QbStatus {
+  connected: boolean
+  token_valid: boolean
+  environment: string
+  realm_id: string
+  last_product_sync: string | null
+}
 
 interface Props {
   settings: CompanySettings | null
@@ -24,6 +32,18 @@ export default function SettingsClient({ settings, fetchError }: Props) {
   const [city,        setCity]        = useState(settings?.city ?? '')
   const [saving,      setSaving]      = useState(false)
   const [msg,         setMsg]         = useState<{ text: string; ok: boolean } | null>(null)
+  const [qbStatus,    setQbStatus]    = useState<QbStatus | null>(null)
+  const [qbLoading,   setQbLoading]   = useState(true)
+
+  useEffect(() => {
+    fetch(`${API}/api/qb/status`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setQbStatus(data))
+      .catch(() => setQbStatus(null))
+      .finally(() => setQbLoading(false))
+  }, [])
 
   function flash(text: string, ok: boolean) {
     setMsg({ text, ok })
@@ -197,6 +217,68 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           <p className="mt-3 text-xs text-slate-400">{t('cfg_previewNote')}</p>
         </div>
 
+      </div>
+
+      {/* QuickBooks Connection */}
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8M12 17v4"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-900">QuickBooks Online</p>
+              {qbLoading ? (
+                <p className="text-xs text-slate-400">Checking status…</p>
+              ) : qbStatus ? (
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${qbStatus.token_valid ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${qbStatus.token_valid ? 'bg-green-500' : 'bg-amber-500'}`} />
+                    {qbStatus.token_valid ? 'Connected' : 'Token expired'}
+                  </span>
+                  <span className="text-xs text-slate-400 capitalize">{qbStatus.environment}</span>
+                  {qbStatus.last_product_sync && (
+                    <span className="text-xs text-slate-400">
+                      Last sync: {new Date(qbStatus.last_product_sync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-0.5 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  <span className="text-xs text-red-600">Not connected</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {qbStatus?.token_valid && (
+              <a
+                href={`${API}/api/qb/disconnect`}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
+                  <line x1="12" y1="2" x2="12" y2="12"/>
+                </svg>
+                Disconnect
+              </a>
+            )}
+            <a
+              href={`${API}/api/qb/auth`}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+              {qbStatus?.token_valid ? 'Reconnect' : 'Connect'}
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* APK Download */}
