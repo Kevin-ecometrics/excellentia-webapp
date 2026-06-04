@@ -51,7 +51,7 @@ export default function SetupPage() {
           {/* Body */}
           <div className="p-6 space-y-5">
 
-            {/* Advertencia */}
+            {/* Warning */}
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
               <p className="font-semibold mb-1">Run once only</p>
               <p className="text-amber-700">
@@ -60,7 +60,7 @@ export default function SetupPage() {
               </p>
             </div>
 
-            {/* Botón */}
+            {/* Button */}
             {!done && (
               <button
                 onClick={runSetup}

@@ -5,7 +5,7 @@ import { useLang } from '@/app/_components/LangProvider'
 interface HourBar { hour: number; count: number }
 interface DayLine { day: string; sent: number; failed: number }
 
-// ── Bar chart — pedidos por hora ─────────────────────────────────────────────
+// ── Bar chart — orders by hour ─────────────────────────────────────────────
 export function BarChart({ data }: { data: HourBar[] }) {
   const max = Math.max(...data.map(d => d.count), 1)
   const W = 480, H = 100, padB = 18, padT = 6
@@ -34,7 +34,7 @@ export function BarChart({ data }: { data: HourBar[] }) {
   )
 }
 
-// ── Line chart — tasa de sincronización ──────────────────────────────────────
+// ── Line chart — sync rate ──────────────────────────────────────
 export function LineChart({ data }: { data: DayLine[] }) {
   const { t } = useLang()
   const W = 480, H = 100, padT = 10, padB = 18, padL = 4, padR = 4
@@ -43,7 +43,7 @@ export function LineChart({ data }: { data: DayLine[] }) {
   const maxVal = Math.max(...data.flatMap(d => [d.sent, d.failed]), 1)
   const n = data.length
 
-  // Cuando hay 1 solo punto lo centramos; cuando hay 0 no hay posición válida
+  // When there's only 1 point we center it; when there's 0 there's no valid position
   const px = (i: number) => n <= 1 ? W / 2 : padL + (i / (n - 1)) * innerW
   const py = (v: number) => padT + innerH - (v / maxVal) * innerH
 

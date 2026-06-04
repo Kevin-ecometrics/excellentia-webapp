@@ -88,7 +88,7 @@ export default function LoginPage() {
       {/* ── Panel derecho — formulario ────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center bg-slate-50 px-6 py-12">
 
-        {/* Mobile logo (solo en móvil) */}
+        {/* Mobile logo (mobile only) */}
         <div className="mb-8 text-center lg:hidden">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

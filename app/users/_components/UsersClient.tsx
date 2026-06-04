@@ -32,7 +32,7 @@ function fmtDate(iso: string) {
   } catch { return '' }
 }
 
-// ── Modal de confirmación ────────────────────────────────────────────────────
+// ── Confirmation modal ────────────────────────────────────────────────────
 function DeleteModal({
   user,
   deleting,
@@ -232,7 +232,7 @@ export default function UsersClient({ users, fetchError }: Props) {
 
   return (
     <>
-      {/* Modal de confirmación */}
+      {/* Confirmation modal */}
       {deleteTarget && (
         <DeleteModal
           user={deleteTarget}
@@ -407,7 +407,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                     </td>
                   </tr>
 
-                  {/* Fila de edición expandida */}
+                  {/* Expanded edit row */}
                   {editing?.id === u.id && (
                     <tr key={`edit-${u.id}`}>
                       <td colSpan={5} className="bg-amber-50 px-4 pb-4 pt-0">

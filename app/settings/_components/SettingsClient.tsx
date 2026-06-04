@@ -78,7 +78,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-        {/* Formulario */}
+        {/* Form */}
         <form onSubmit={handleSave} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_formTitle')}</p>
 
@@ -169,7 +169,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           </div>
         </form>
 
-        {/* Preview del ticket */}
+        {/* Ticket preview */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_previewTitle')}</p>
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 font-mono text-xs">

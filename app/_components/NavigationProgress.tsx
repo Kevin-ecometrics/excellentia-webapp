@@ -31,7 +31,7 @@ export default function NavigationProgress() {
     return () => { document.removeEventListener('click', start); clearAll() }
   }, [pathname])
 
-  // Pathname cambió → completar barra
+  // Pathname changed → complete the bar
   useEffect(() => {
     clearAll()
     setWidth(100)

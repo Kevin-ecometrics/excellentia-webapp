@@ -31,7 +31,7 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
   const [from, setFrom] = useState(currentFrom ?? todayStr())
   const [to,   setTo]   = useState(currentTo   ?? todayStr())
 
-  // Actualizar inputs si cambian los props (navegación)
+  // Update inputs when props change (navigation)
   useEffect(() => {
     if (current === 'custom') {
       setFrom(currentFrom ?? todayStr())
@@ -81,7 +81,7 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
         ))}
       </div>
 
-      {/* Botón personalizado */}
+      {/* Custom button */}
       <div className="relative" ref={pickerRef}>
         <button
           onClick={() => setShowPicker(v => !v)}

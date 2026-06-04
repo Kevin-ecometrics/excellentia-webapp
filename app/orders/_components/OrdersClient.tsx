@@ -235,22 +235,22 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          {/* Ticket — mismo formato que el ticket físico impreso */}
+          {/* Ticket — same format as printed physical ticket */}
           <div className="p-5 font-mono text-[11px] leading-5 text-black bg-white">
-            {/* Cabecera empresa */}
+            {/* Company header */}
             <p className="font-bold">{company.company_name}</p>
             <p>{company.subtitle}</p>
             {company.city    && <p>{company.city}</p>}
             {company.address && <p>{company.address}</p>}
             {company.phone   && <p>{company.phone}</p>}
 
-            {/* Info del pedido */}
+            {/* Order info */}
             <p className="mt-1">================================</p>
             <p>{fmtDate(ticketBatch.createdAt)}</p>
             <p>{t('tkt_order')}{ticketBatch.batchId.slice(-8).toUpperCase()}</p>
             {ticketBatch.invoiceId && <p>{t('tkt_invoice')}{ticketBatch.invoiceId}</p>}
 
-            {/* Cliente */}
+            {/* Customer */}
             {ticketBatch.customerName && (
               <>
                 <p>--------------------------------</p>
@@ -258,7 +258,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               </>
             )}
 
-            {/* Ítems */}
+            {/* Items */}
             <p>================================</p>
             {ticketBatch.orders.map(o => (
               <div key={o.id} className="mb-2">
@@ -290,7 +290,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             <p>{ticketBatch.orders.reduce((s,o) => s + Number(o.quantity), 0).toFixed(2)} {t('tkt_lbTotal')}</p>
             <p>{company.company_name}</p>
 
-            {/* Términos y condiciones */}
+            {/* Terms and conditions */}
             <p className="mt-1">--------------------------------</p>
             <p className="text-[10px] leading-4 text-slate-600">
               I hereby acknowledge that all above referenced goods have been received and are in
@@ -298,13 +298,13 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               assent to all terms on the reverse of this page and I accept all the terms of this sale.
             </p>
 
-            {/* Firma */}
+            {/* Signature */}
             <p className="mt-1">--------------------------------</p>
             <p>{t('tkt_signature')}</p>
             {ticketSignature ? (
               <img
                 src={`data:image/png;base64,${ticketSignature}`}
-                alt="Firma del cliente"
+                alt="Customer signature"
                 className="mt-1 w-full max-h-28 object-contain object-left bg-white border border-slate-100 rounded"
               />
             ) : (
