@@ -199,6 +199,38 @@ export default function SettingsClient({ settings, fetchError }: Props) {
 
       </div>
 
+      {/* APK Download */}
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-50">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="8" y1="10" x2="16" y2="10"/>
+                <line x1="8" y1="14" x2="12" y2="14"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-900">Android App</p>
+              <p className="text-xs text-slate-500">Download the APK for Android devices</p>
+            </div>
+          </div>
+          <a
+            href="/excellentia.apk"
+            download
+            className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-green-600/20 hover:bg-green-700 active:scale-[0.98] transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download APK
+          </a>
+        </div>
+      </div>
+
       {settings?.updated_at && (
         <p className="mt-4 text-xs text-slate-400 text-right">
           {t('cfg_lastUpdated')} {new Date(settings.updated_at).toLocaleString('en-US', {
