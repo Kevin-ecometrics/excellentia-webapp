@@ -62,15 +62,15 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
     : t('dt_range')
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {/* Chips de presets */}
-      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+    <div className="flex items-center gap-1.5 flex-wrap justify-end sm:justify-start">
+      {/* Preset chips */}
+      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm overflow-x-auto">
         {presets.map(f => (
           <Link
             key={f.key}
             href={`/dashboard?filter=${f.key}`}
             onClick={() => setShowPicker(false)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
               current === f.key
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-500 hover:text-zinc-900 hover:bg-slate-50'
@@ -85,7 +85,7 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
       <div className="relative" ref={pickerRef}>
         <button
           onClick={() => setShowPicker(v => !v)}
-          className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition-all ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold shadow-sm transition-all whitespace-nowrap ${
             isCustom
               ? 'border-blue-500 bg-blue-600 text-white'
               : 'border-slate-200 bg-white text-slate-500 hover:text-zinc-900 hover:bg-slate-50'
