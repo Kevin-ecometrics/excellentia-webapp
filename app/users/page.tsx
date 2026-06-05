@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import UsersClient from './_components/UsersClient'
-import { getToken, logout } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 
 export interface UserRow {
   id: number
@@ -20,9 +20,7 @@ export default function UsersPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-
-    fetch(`${API}/api/users`, { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch(`${API}/api/users`)
       .then(res => {
         if (res.status === 401) { logout(); return null }
         if (res.status === 403) { window.location.href = '/dashboard'; return null }

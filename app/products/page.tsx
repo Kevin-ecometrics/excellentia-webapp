@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ProductsClient from './_components/ProductsClient'
-import { getToken, decodeJwt, logout } from '@/app/lib/auth'
+import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 
 export interface Product {
   id: number
@@ -27,11 +27,10 @@ export default function ProductsPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-    const user = decodeJwt(token)
+    const user = getUserInfo()
     setIsAdmin(user?.role === 'admin')
 
-    fetch(`${API}/api/products?limit=500`, { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch(`${API}/api/products?limit=500`)
       .then(res => {
         if (res.status === 401) { logout(); return null }
         if (!res.ok) throw new Error(`Error ${res.status}`)

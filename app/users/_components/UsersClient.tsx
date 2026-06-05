@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserRow } from '../page'
-import { getToken } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -158,12 +158,12 @@ export default function UsersClient({ users, fetchError }: Props) {
     if (!validateCreate()) return
     setCreating(true)
     try {
-      const res = await fetch(`${API}/api/auth/register`, {
+      const res = await apiFetch(`${API}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password, role }),
       })
-      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
+      if (res.status === 401) { logout(); return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)
@@ -186,12 +186,12 @@ export default function UsersClient({ users, fetchError }: Props) {
       const body: Record<string, string | null> = { email: editing.email, name: editing.name || null, role: editing.role }
       if (editing.password) body.password = editing.password
 
-      const res = await fetch(`${API}/api/users/${editing.id}`, {
+      const res = await apiFetch(`${API}/api/users/${editing.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
+      if (res.status === 401) { logout(); return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)
@@ -210,11 +210,8 @@ export default function UsersClient({ users, fetchError }: Props) {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const res = await fetch(`${API}/api/users/${deleteTarget.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
-      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
+      const res = await apiFetch(`${API}/api/users/${deleteTarget.id}`, { method: 'DELETE' })
+      if (res.status === 401) { logout(); return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CurrentUser } from '../layout'
 import { useLang } from './LangProvider'
+import { logout } from '@/app/lib/auth'
 
 
 const navItems = {
@@ -31,10 +32,6 @@ export default function Sidebar({ user }: { user: CurrentUser }) {
   const displayName = user.name ?? user.email
   const initials = displayName.slice(0, 2).toUpperCase()
 
-  function logout() {
-    document.cookie = 'jwt=; path=/; max-age=0'
-    window.location.href = '/login'
-  }
 
   const groups = [
     { labelKey: 'nav_general' as const, keys: ['dashboard', 'orders', 'products'] as const },

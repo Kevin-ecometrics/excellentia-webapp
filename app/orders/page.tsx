@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import OrdersClient from './_components/OrdersClient'
-import { getToken, decodeJwt, logout } from '@/app/lib/auth'
+import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 
 export interface OrderRow {
   id: number
@@ -41,15 +41,12 @@ export default function OrdersPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-    const user = decodeJwt(token)
+    const user = getUserInfo()
     setIsAdmin(user?.role === 'admin')
 
-    const headers = { Authorization: `Bearer ${token}` }
-
     Promise.allSettled([
-      fetch(`${API}/api/orders?limit=200`, { headers }),
-      fetch(`${API}/api/settings`, { headers }),
+      apiFetch(`${API}/api/orders?limit=200`),
+      apiFetch(`${API}/api/settings`),
     ]).then(async ([ordersRes, settingsRes]) => {
       if (ordersRes.status === 'fulfilled') {
         if (ordersRes.value.status === 401) { logout(); return }

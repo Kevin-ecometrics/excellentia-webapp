@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import DateFilter from './_components/DateFilter'
 import DashboardClient from './_components/DashboardClient'
-import { getToken, decodeJwt, logout } from '@/app/lib/auth'
+import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 import { Suspense } from 'react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -34,8 +34,7 @@ function DashboardInner() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-    const user = decodeJwt(token)
+    const user = getUserInfo()
     if (user?.role !== 'admin') { window.location.href = '/orders'; return }
 
     const url = new URL(`${API}/api/stats`)
@@ -45,7 +44,7 @@ function DashboardInner() {
       url.searchParams.set('to', customTo)
     }
 
-    fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch(url.toString())
       .then(res => {
         if (res.status === 401) { logout(); return null }
         if (!res.ok) throw new Error(`Error ${res.status}`)

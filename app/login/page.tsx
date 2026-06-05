@@ -19,6 +19,7 @@ export default function LoginPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password }),
       })
       if (!res.ok) {
@@ -27,7 +28,9 @@ export default function LoginPage() {
         return
       }
       const data = await res.json()
-      document.cookie = `jwt=${data.token}; path=/; max-age=${7 * 86400}`
+      // Store only public user info (non-HttpOnly) for UI display
+      const userInfo = { id: data.user.id, email: data.user.email, name: data.user.name ?? null, role: data.user.role }
+      document.cookie = `jwt_user=${encodeURIComponent(JSON.stringify(userInfo))}; path=/; max-age=${7 * 86400}`
       window.location.href = data.user?.role === 'admin' ? '/dashboard' : '/orders'
     } catch {
       setError('Could not connect to the server')

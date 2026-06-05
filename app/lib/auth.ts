@@ -1,13 +1,4 @@
-export function getToken(): string {
-  if (typeof document === 'undefined') return ''
-  const match = document.cookie.match(/(?:^|; )jwt=([^;]*)/)
-  return match ? decodeURIComponent(match[1]) : ''
-}
-
-export function logout(): void {
-  document.cookie = 'jwt=; path=/; max-age=0'
-  window.location.href = '/login'
-}
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export interface CurrentUser {
   id: number
@@ -16,9 +7,27 @@ export interface CurrentUser {
   role: 'admin' | 'operator'
 }
 
-export function decodeJwt(token: string): CurrentUser | null {
+export function getUserInfo(): CurrentUser | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(/(?:^|; )jwt_user=([^;]*)/)
+  if (!match) return null
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return { id: payload.id, email: payload.email, name: payload.name ?? null, role: payload.role }
+    return JSON.parse(decodeURIComponent(match[1]))
   } catch { return null }
+}
+
+export function clearSession(): void {
+  document.cookie = 'jwt_user=; path=/; max-age=0'
+  window.location.href = '/login'
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+  } catch {}
+  clearSession()
+}
+
+export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, credentials: 'include' })
 }

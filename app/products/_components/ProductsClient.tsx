@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Product } from '../page'
 import ProductRow from './ProductRow'
 import ProductModal from './ProductModal'
-import { getToken } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -43,12 +43,8 @@ export default function ProductsClient({ products, fetchError, isAdmin }: Props)
     setSyncing(true)
     setSyncMsg(null)
     try {
-      const token = getToken()
-      const res = await fetch(`${API}/api/qb/sync-products`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
+      const res = await apiFetch(`${API}/api/qb/sync-products`, { method: 'POST' })
+      if (res.status === 401) { logout(); return }
       if (!res.ok) throw new Error(`Error ${res.status}`)
       setSyncMsg({ text: t('prod_syncDone'), ok: true })
       router.refresh()

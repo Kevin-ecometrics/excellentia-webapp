@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { logout } from '@/app/lib/auth'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -10,11 +11,6 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname()
-
-  function logout() {
-    document.cookie = 'jwt=; path=/; max-age=0'
-    window.location.href = '/login'
-  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">

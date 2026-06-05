@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Product } from '../page'
-import { getToken } from '@/app/lib/auth'
+import { apiFetch } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -14,7 +14,6 @@ interface Props {
 }
 
 export default function ProductModal({ product, onClose, onSaved }: Props) {
-  const token = getToken()
   const { t } = useLang()
   const isEdit = !!product
 
@@ -73,9 +72,9 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
       body.description = form.description.trim() || null
 
       const url = isEdit ? `${API}/api/products/${product!.id}` : `${API}/api/products`
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       const data = await res.json()

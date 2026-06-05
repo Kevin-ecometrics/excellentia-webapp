@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CompanySettings } from '../page'
-import { getToken } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -36,9 +36,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
   const [qbLoading,   setQbLoading]   = useState(true)
 
   useEffect(() => {
-    fetch(`${API}/api/qb/status`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
+    apiFetch(`${API}/api/qb/status`)
       .then(r => r.ok ? r.json() : null)
       .then(data => setQbStatus(data))
       .catch(() => setQbStatus(null))
@@ -54,9 +52,9 @@ export default function SettingsClient({ settings, fetchError }: Props) {
     e.preventDefault()
     setSaving(true)
     try {
-      const res = await fetch(`${API}/api/settings`, {
+      const res = await apiFetch(`${API}/api/settings`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company_name: companyName,
           subtitle,
@@ -65,7 +63,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           city:    city    || null,
         }),
       })
-      if (res.status === 401) { document.cookie = 'jwt=; path=/; max-age=0'; window.location.href = '/login'; return }
+      if (res.status === 401) { logout(); return }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? `Error ${res.status}`)

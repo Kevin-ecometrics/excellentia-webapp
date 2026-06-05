@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import SettingsClient from './_components/SettingsClient'
-import { getToken, logout } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 
 export interface CompanySettings {
   id: number
@@ -22,9 +22,7 @@ export default function SettingsPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-
-    fetch(`${API}/api/settings`, { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch(`${API}/api/settings`)
       .then(res => {
         if (res.status === 401) { logout(); return null }
         if (res.status === 403) { window.location.href = '/dashboard'; return null }

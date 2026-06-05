@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Sidebar from './Sidebar'
-import { getToken, decodeJwt } from '@/app/lib/auth'
+import { getUserInfo } from '@/app/lib/auth'
 import type { CurrentUser } from '@/app/lib/auth'
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
@@ -10,8 +10,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-    setUser(token ? decodeJwt(token) : null)
+    setUser(getUserInfo())
   }, [])
 
   useEffect(() => {

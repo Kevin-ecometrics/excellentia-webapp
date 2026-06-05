@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { OrderRow, CompanyInfo } from '../page'
-import { getToken } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -114,9 +114,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     setExpanded(next)
     if (next && !expandedDamage.has(batchId)) {
       try {
-        const res = await fetch(`${API}/api/orders/damage/${batchId}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        })
+        const res = await apiFetch(`${API}/api/orders/damage/${batchId}`)
         if (res.ok) {
           const data = await res.json()
           const items = (data.data ?? []).filter((d: DamageItem) => d.qty > 0)
@@ -132,9 +130,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     setTicketDamageItems([])
     setTicketSignature(null)
     try {
-      const res = await fetch(`${API}/api/orders/damage/${batch.batchId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
+      const res = await apiFetch(`${API}/api/orders/damage/${batch.batchId}`)
       if (res.ok) {
         const data = await res.json()
         setTicketDamageItems((data.data ?? []).filter((d: DamageItem) => d.qty > 0))
@@ -181,7 +177,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       const params = new URLSearchParams()
       if (statusFilter !== 'ALL') params.set('status', statusFilter)
       const url = `${API}/api/orders/export?${params}`
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } })
+      const res = await apiFetch(url)
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const blob = await res.blob()
       const a = document.createElement('a')
@@ -200,10 +196,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     setSyncing(batch.batchId)
     try {
       await Promise.all(batch.orders.map(o =>
-        fetch(`${API}/api/orders/${o.id}/sync`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${getToken()}` },
-        })
+        apiFetch(`${API}/api/orders/${o.id}/sync`, { method: 'POST' })
       ))
       flash(`Batch #${batch.batchId.slice(-6)} sent to sync queue`, true)
       router.refresh()

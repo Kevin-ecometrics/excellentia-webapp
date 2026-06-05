@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import CustomersClient from './_components/CustomersClient'
-import { getToken, logout } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 
 export interface CustomerStat {
   customer_id: string
@@ -20,9 +20,7 @@ export default function CustomersPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = getToken()
-
-    fetch(`${API}/api/customers/stats`, { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch(`${API}/api/customers/stats`)
       .then(res => {
         if (res.status === 401) { logout(); return null }
         if (res.status === 403) { window.location.href = '/dashboard'; return null }
