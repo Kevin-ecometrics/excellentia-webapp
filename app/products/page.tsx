@@ -26,22 +26,29 @@ export default function ProductsPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [ready, setReady] = useState(false)
 
+  async function loadProducts() {
+    try {
+      const res = await apiFetch(`${API}/api/products?limit=500`)
+      if (res.status === 401) { logout(); return }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Error al cargar productos`)
+      }
+      const data = await res.json()
+      setProducts(data.data ?? [])
+      setFetchError('')
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : 'Could not connect to the server')
+    }
+  }
+
   useEffect(() => {
     const user = getUserInfo()
     setIsAdmin(user?.role === 'admin')
-
-    apiFetch(`${API}/api/products?limit=500`)
-      .then(res => {
-        if (res.status === 401) { logout(); return null }
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        return res.json()
-      })
-      .then(data => { if (data) setProducts(data.data ?? []) })
-      .catch(e => setFetchError(e instanceof Error ? e.message : 'Could not connect to the server'))
-      .finally(() => setReady(true))
+    loadProducts().finally(() => setReady(true))
   }, [])
 
   if (!ready) return null
 
-  return <ProductsClient products={products} fetchError={fetchError} isAdmin={isAdmin} />
+  return <ProductsClient products={products} fetchError={fetchError} isAdmin={isAdmin} onSyncComplete={loadProducts} />
 }

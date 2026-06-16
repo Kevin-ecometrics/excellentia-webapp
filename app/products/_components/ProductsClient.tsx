@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import type { Product } from '../page'
 import ProductRow from './ProductRow'
 import ProductModal from './ProductModal'
@@ -14,10 +13,10 @@ interface Props {
   products: Product[]
   fetchError: string
   isAdmin: boolean
+  onSyncComplete?: () => Promise<void>
 }
 
-export default function ProductsClient({ products, fetchError, isAdmin }: Props) {
-  const router = useRouter()
+export default function ProductsClient({ products, fetchError, isAdmin, onSyncComplete }: Props) {
   const { t } = useLang()
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
@@ -45,9 +44,12 @@ export default function ProductsClient({ products, fetchError, isAdmin }: Props)
     try {
       const res = await apiFetch(`${API}/api/qb/sync-products`, { method: 'POST' })
       if (res.status === 401) { logout(); return }
-      if (!res.ok) throw new Error(`Error ${res.status}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Error del servidor`)
+      }
+      if (onSyncComplete) await onSyncComplete()
       setSyncMsg({ text: t('prod_syncDone'), ok: true })
-      router.refresh()
     } catch (e) {
       setSyncMsg({ text: e instanceof Error ? e.message : t('prod_syncError'), ok: false })
     } finally {
@@ -166,7 +168,7 @@ export default function ProductsClient({ products, fetchError, isAdmin }: Props)
         <ProductModal
           product={editProduct}
           onClose={() => setEditProduct(null)}
-          onSaved={() => { setEditProduct(null); router.refresh() }}
+          onSaved={() => { setEditProduct(null); onSyncComplete?.() }}
         />
       )}
 
