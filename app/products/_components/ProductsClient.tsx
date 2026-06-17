@@ -43,8 +43,14 @@ export default function ProductsClient() {
         throw new Error(body.error || 'Error al cargar productos')
       }
       const data = await res.json()
+      const m = data.meta ?? {}
       setProducts(data.data ?? [])
-      setMeta(data.meta ?? { page: 1, limit: 10, total: 0, totalPages: 0 })
+      setMeta({
+        page: m.page || 1,
+        limit: m.limit || 10,
+        total: m.total || 0,
+        totalPages: m.totalPages || Math.ceil((m.total || 0) / (m.limit || 10)),
+      })
       setFetchError('')
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Could not connect to the server')
