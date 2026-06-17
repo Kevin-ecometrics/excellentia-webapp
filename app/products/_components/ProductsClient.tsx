@@ -9,18 +9,16 @@ import { useLang } from '@/app/_components/LangProvider'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-interface Filters { search: string; category: string; qb: string; stock: string }
 interface Meta { page: number; limit: number; total: number; totalPages: number }
 
 export default function ProductsClient() {
   const { t } = useLang()
   const [products, setProducts] = useState<Product[]>([])
-  const [meta, setMeta] = useState<Meta>({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  const [meta, setMeta] = useState<Meta>({ page: 1, limit: 10, total: 0, totalPages: 0 })
   const [fetchError, setFetchError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [ready, setReady] = useState(false)
-  const [categories, setCategories] = useState<string[]>([])
-  const [filters, setFilters] = useState<Filters>({ search: '', category: '', qb: '', stock: '' })
+  const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -36,10 +34,7 @@ export default function ProductsClient() {
       const params = new URLSearchParams()
       params.set('page', String(meta.page))
       params.set('limit', String(meta.limit))
-      if (filters.search) params.set('search', filters.search)
-      if (filters.category) params.set('category', filters.category)
-      if (filters.qb) params.set('qb', filters.qb)
-      if (filters.stock) params.set('stock', filters.stock)
+      if (search) params.set('search', search)
 
       const res = await apiFetch(`${API}/api/products?${params}`)
       if (res.status === 401) { logout(); return }
@@ -49,35 +44,20 @@ export default function ProductsClient() {
       }
       const data = await res.json()
       setProducts(data.data ?? [])
-      setMeta(data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 })
+      setMeta(data.meta ?? { page: 1, limit: 10, total: 0, totalPages: 0 })
       setFetchError('')
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Could not connect to the server')
     }
   }
 
-  async function loadCategories() {
-    try {
-      const res = await apiFetch(`${API}/api/products/categories`)
-      if (res.ok) {
-        const data = await res.json()
-        setCategories(data.data ?? [])
-      }
-    } catch {}
-  }
-
   useEffect(() => {
     if (ready) loadProducts()
-  }, [meta.page, meta.limit, filters])
+  }, [meta.page, meta.limit, search])
 
   useEffect(() => {
-    Promise.all([loadProducts(), loadCategories()]).finally(() => setReady(true))
+    loadProducts().finally(() => setReady(true))
   }, [])
-
-  function updateFilter(key: keyof Filters, value: string) {
-    setFilters(prev => ({ ...prev, [key]: value }))
-    setMeta(prev => ({ ...prev, page: 1 }))
-  }
 
   async function handleSync() {
     setSyncing(true)
@@ -196,60 +176,20 @@ export default function ProductsClient() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative max-w-sm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
             type="text"
-            value={filters.search}
-            onChange={e => updateFilter('search', e.target.value)}
+            value={search}
+            onChange={e => { setSearch(e.target.value); setMeta(prev => ({ ...prev, page: 1 })) }}
             placeholder={t('prod_search')}
             className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-4 text-sm shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
-          {filters.search && (
-            <button onClick={() => updateFilter('search', '')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-zinc-700">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          )}
         </div>
-      </div>
-
-      {/* Filter selects */}
-      <div className="mb-4 flex flex-wrap gap-3">
-        <select
-          value={filters.category}
-          onChange={e => updateFilter('category', e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="">{t('prod_filterCat')}</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-
-        <select
-          value={filters.qb}
-          onChange={e => updateFilter('qb', e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="">{t('prod_filterQb')}</option>
-          <option value="synced">{t('prod_qbSynced')}</option>
-          <option value="unsynced">{t('prod_qbUnsynced')}</option>
-        </select>
-
-        <select
-          value={filters.stock}
-          onChange={e => updateFilter('stock', e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="">{t('prod_filterStock')}</option>
-          <option value="instock">{t('prod_stockIn')}</option>
-          <option value="outofstock">{t('prod_stockOut')}</option>
-          <option value="lowstock">{t('prod_stockLow')}</option>
-        </select>
       </div>
 
       {/* Table */}
@@ -274,8 +214,8 @@ export default function ProductsClient() {
             {products.length === 0 && (
               <tr>
                 <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-sm text-slate-400">
-                  {filters.search
-                    ? `${t('prod_noResults')} "${filters.search}"`
+                  {search
+                    ? `${t('prod_noResults')} "${search}"`
                     : t('prod_empty')}
                 </td>
               </tr>
@@ -296,7 +236,7 @@ export default function ProductsClient() {
               onChange={e => setMeta(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
               className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
             >
-              {[20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
 
