@@ -76,6 +76,16 @@ export const translations = {
     prod_statSyncQb:  'Sync QB',
     prod_statCode:    'With barcode',
     prod_statNoStock: 'No stock',
+    prod_filterCat:   'All categories',
+    prod_filterQb:    'QB: All',
+    prod_qbSynced:    'Synced',
+    prod_qbUnsynced:  'Unsynced',
+    prod_filterStock: 'Stock: All',
+    prod_stockIn:     'In stock',
+    prod_stockOut:    'Out of stock',
+    prod_stockLow:    'Low stock',
+    prod_pagePrev:    'Prev',
+    prod_pageNext:    'Next',
 
     // Product Modal
     modal_editProd:       'Edit product',
@@ -341,6 +351,16 @@ export const translations = {
     prod_statSyncQb:  'Sync QB',
     prod_statCode:    'With barcode',
     prod_statNoStock: 'No stock',
+    prod_filterCat:   'All categories',
+    prod_filterQb:    'QB: All',
+    prod_qbSynced:    'Synced',
+    prod_qbUnsynced:  'Unsynced',
+    prod_filterStock: 'Stock: All',
+    prod_stockIn:     'In stock',
+    prod_stockOut:    'Out of stock',
+    prod_stockLow:    'Low stock',
+    prod_pagePrev:    'Prev',
+    prod_pageNext:    'Next',
 
     // Product Modal
     modal_editProd:       'Edit product',
