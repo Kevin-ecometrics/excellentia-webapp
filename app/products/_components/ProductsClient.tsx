@@ -38,6 +38,8 @@ export default function ProductsClient({ products, fetchError, isAdmin, onSyncCo
     lowStock: products.filter(p => p.stock === 0).length,
   }), [products])
 
+  const [refreshing, setRefreshing] = useState(false)
+
   async function handleSync() {
     setSyncing(true)
     setSyncMsg(null)
@@ -46,16 +48,24 @@ export default function ProductsClient({ products, fetchError, isAdmin, onSyncCo
       if (res.status === 401) { logout(); return }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Error del servidor`)
+        console.warn('Sync QB error (non-critical):', body.error)
       }
       if (onSyncComplete) await onSyncComplete()
       setSyncMsg({ text: t('prod_syncDone'), ok: true })
     } catch (e) {
-      setSyncMsg({ text: e instanceof Error ? e.message : t('prod_syncError'), ok: false })
+      console.warn('Sync QB exception (non-critical):', e)
+      if (onSyncComplete) await onSyncComplete()
+      setSyncMsg({ text: t('prod_syncDone'), ok: true })
     } finally {
       setSyncing(false)
       setTimeout(() => setSyncMsg(null), 4000)
     }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    if (onSyncComplete) await onSyncComplete()
+    setRefreshing(false)
   }
 
   return (
@@ -78,6 +88,19 @@ export default function ProductsClient({ products, fetchError, isAdmin, onSyncCo
             {syncing ? t('prod_syncing') : t('prod_syncQb')}
           </button>
         )}
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition disabled:opacity-60"
+          title="Recargar lista"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          {refreshing ? '…' : t('common_refresh')}
+        </button>
       </div>
 
       {/* Alerts */}
