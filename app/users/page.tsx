@@ -9,6 +9,7 @@ export interface UserRow {
   email: string
   name: string | null
   role: 'admin' | 'operator'
+  qb_class_id: string | null
   created_at: string
 }
 

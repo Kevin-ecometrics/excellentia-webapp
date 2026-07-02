@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserRow } from '../page'
 import { apiFetch, logout } from '@/app/lib/auth'
@@ -19,6 +19,12 @@ interface EditState {
   name: string
   role: 'operator' | 'admin'
   password: string
+  qbClassId: string
+}
+
+interface QbClass {
+  id: string
+  name: string
 }
 
 const roleBadge: Record<string, string> = {
@@ -121,8 +127,23 @@ export default function UsersClient({ users, fetchError }: Props) {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
   const [role, setRole]         = useState<'operator' | 'admin'>('operator')
+  const [qbClassId, setQbClassId] = useState('')
   const [creating, setCreating] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // QBO Classes (vendedor)
+  const [classes, setClasses] = useState<QbClass[]>([])
+  const [classesError, setClassesError] = useState('')
+
+  useEffect(() => {
+    apiFetch(`${API}/api/qb/classes`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => setClasses(data.data ?? []))
+      .catch(() => setClassesError(t('usr_classesError')))
+  }, [])
 
   // Edit
   const [editing, setEditing] = useState<EditState | null>(null)
@@ -140,7 +161,7 @@ export default function UsersClient({ users, fetchError }: Props) {
   }
 
   function startEdit(u: UserRow) {
-    setEditing({ id: u.id, email: u.email, name: u.name ?? '', role: u.role, password: '' })
+    setEditing({ id: u.id, email: u.email, name: u.name ?? '', role: u.role, password: '', qbClassId: u.qb_class_id ?? '' })
   }
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -161,7 +182,7 @@ export default function UsersClient({ users, fetchError }: Props) {
       const res = await apiFetch(`${API}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password, role }),
+        body: JSON.stringify({ email: email.trim(), name: name.trim() || undefined, password, role, qb_class_id: qbClassId || undefined }),
       })
       if (res.status === 401) { logout(); return }
       if (!res.ok) {
@@ -169,7 +190,7 @@ export default function UsersClient({ users, fetchError }: Props) {
         throw new Error(err.error ?? `Error ${res.status}`)
       }
       flash(t('usr_created'), true)
-      setName(''); setEmail(''); setPassword(''); setRole('operator'); setShowForm(false); setFormErrors({})
+      setName(''); setEmail(''); setPassword(''); setRole('operator'); setQbClassId(''); setShowForm(false); setFormErrors({})
       router.refresh()
     } catch (e) {
       flash(e instanceof Error ? e.message : 'Error creating user', false)
@@ -183,7 +204,7 @@ export default function UsersClient({ users, fetchError }: Props) {
     if (!editing) return
     setSaving(true)
     try {
-      const body: Record<string, string | null> = { email: editing.email, name: editing.name || null, role: editing.role }
+      const body: Record<string, string | null> = { email: editing.email, name: editing.name || null, role: editing.role, qb_class_id: editing.qbClassId || null }
       if (editing.password) body.password = editing.password
 
       const res = await apiFetch(`${API}/api/users/${editing.id}`, {
@@ -271,7 +292,10 @@ export default function UsersClient({ users, fetchError }: Props) {
         {showForm && (
           <form onSubmit={handleCreate} className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
             <p className="mb-4 text-sm font-semibold text-zinc-900">{t('usr_formTitle')}</p>
-            <div className="grid gap-3 sm:grid-cols-4">
+            {classesError && (
+              <p className="mb-3 text-xs text-red-600">{classesError}</p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-5">
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_name')}</label>
                 <input
@@ -332,6 +356,18 @@ export default function UsersClient({ users, fetchError }: Props) {
                   <option value="admin">{t('usr_admin')}</option>
                 </select>
               </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_qbClass')}</label>
+                <select
+                  value={qbClassId} onChange={e => setQbClassId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">{t('usr_qbClassNone')}</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="mt-4 flex justify-end">
               <button type="submit" disabled={creating}
@@ -350,6 +386,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colName')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colEmail')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colRole')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_qbClass')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colCreated')}</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -376,6 +413,9 @@ export default function UsersClient({ users, fetchError }: Props) {
                       <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${roleBadge[u.role] ?? 'bg-slate-100 text-slate-500'}`}>
                         {u.role === 'admin' ? t('usr_admin') : t('usr_operator')}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {classes.find(c => c.id === u.qb_class_id)?.name ?? <span className="text-slate-400 italic">{t('usr_qbClassNone')}</span>}
                     </td>
                     <td className="px-4 py-3 text-slate-500">{fmtDate(u.created_at)}</td>
                     <td className="px-4 py-3 text-right">
@@ -407,10 +447,10 @@ export default function UsersClient({ users, fetchError }: Props) {
                   {/* Expanded edit row */}
                   {editing?.id === u.id && (
                     <tr key={`edit-${u.id}`}>
-                      <td colSpan={5} className="bg-amber-50 px-4 pb-4 pt-0">
+                      <td colSpan={6} className="bg-amber-50 px-4 pb-4 pt-0">
                         <form onSubmit={handleSave} className="rounded-xl border border-amber-200 bg-white p-4">
                           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">{t('usr_editTitle')}</p>
-                          <div className="grid gap-3 sm:grid-cols-4">
+                          <div className="grid gap-3 sm:grid-cols-5">
                             <div>
                               <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_name')}</label>
                               <input
@@ -450,6 +490,19 @@ export default function UsersClient({ users, fetchError }: Props) {
                                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
                               />
                             </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_qbClass')}</label>
+                              <select
+                                value={editing.qbClassId}
+                                onChange={e => setEditing({ ...editing, qbClassId: e.target.value })}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                              >
+                                <option value="">{t('usr_qbClassNone')}</option>
+                                {classes.map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                           <div className="mt-3 flex justify-end gap-2">
                             <button type="button" onClick={() => setEditing(null)}
@@ -476,7 +529,7 @@ export default function UsersClient({ users, fetchError }: Props) {
               ))}
               {users.length === 0 && !fetchError && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">
                     {t('usr_empty')}
                   </td>
                 </tr>

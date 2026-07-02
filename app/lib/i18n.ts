@@ -193,6 +193,9 @@ export const translations = {
     usr_created:     'User created successfully',
     usr_updated:     'User updated',
     usr_deleted:     'deleted',
+    usr_qbClass:     'QBO Class (vendedor)',
+    usr_qbClassNone: 'Unassigned',
+    usr_classesError:'Could not load Classes from QuickBooks',
 
     // Settings
     cfg_title:        'Settings',
@@ -468,6 +471,9 @@ export const translations = {
     usr_created:     'User created successfully',
     usr_updated:     'User updated',
     usr_deleted:     'deleted',
+    usr_qbClass:     'QBO Class (vendedor)',
+    usr_qbClassNone: 'Unassigned',
+    usr_classesError:'Could not load Classes from QuickBooks',
 
     // Settings
     cfg_title:        'Settings',
