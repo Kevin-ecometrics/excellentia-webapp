@@ -23,6 +23,9 @@ export default function ProductsClient() {
   const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [isInvoice, setIsInvoice] = useState(false)
+  const [qtyMap, setQtyMap] = useState<Record<number, number>>({})
+  const [rateMap, setRateMap] = useState<Record<number, number>>({})
 
   useEffect(() => {
     const user = getUserInfo()
@@ -64,6 +67,50 @@ export default function ProductsClient() {
   useEffect(() => {
     loadProducts().finally(() => setReady(true))
   }, [])
+
+  useEffect(() => {
+    setRateMap(prev => {
+      const next = { ...prev }
+      for (const p of products) {
+        if (!(p.id in next)) {
+          next[p.id] = p.price
+        }
+      }
+      return next
+    })
+  }, [products])
+
+  function handleQtyChange(id: number, qty: number) {
+    setQtyMap(prev => ({ ...prev, [id]: qty }))
+  }
+
+  function handleRateChange(id: number, rate: number) {
+    setRateMap(prev => ({ ...prev, [id]: rate }))
+  }
+
+  function toggleInvoiceMode() {
+    if (isInvoice) {
+      setIsInvoice(false)
+    } else {
+      setQtyMap({})
+      setRateMap({})
+      for (const p of products) {
+        setQtyMap(prev => ({ ...prev, [p.id]: p.qty || 1 }))
+        setRateMap(prev => ({ ...prev, [p.id]: p.price }))
+      }
+      setIsInvoice(true)
+    }
+  }
+
+  const invoiceItems = useMemo(() => {
+    return products.filter(p => (qtyMap[p.id] || 0) > 0)
+  }, [products, qtyMap])
+
+  const invoiceItemCount = invoiceItems.length
+
+  const invoiceTotal = useMemo(() => {
+    return invoiceItems.reduce((sum, p) => sum + (qtyMap[p.id] || 0) * (rateMap[p.id] || 0), 0)
+  }, [invoiceItems, qtyMap, rateMap])
 
   async function handleSync() {
     setSyncing(true)
@@ -118,6 +165,9 @@ export default function ProductsClient() {
     return pages
   }, [meta.page, meta.totalPages])
 
+  const thCls = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500'
+  const colSpan = 9 + (isAdmin ? 1 : 0) + (isInvoice ? 2 : 0)
+
   if (!ready) return null
 
   return (
@@ -129,6 +179,23 @@ export default function ProductsClient() {
           <p className="mt-0.5 text-sm text-slate-500">{t('prod_total')}: {meta.total}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleInvoiceMode}
+            className={`flex items-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[0.98] ${
+              isInvoice
+                ? 'border-primary bg-primary text-white'
+                : 'border-slate-200 bg-white text-zinc-700 hover:bg-slate-50 hover:border-slate-300'
+            }`}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            {isInvoice ? t('prod_invModeOff') : t('prod_invModeOn')}
+          </button>
           {isAdmin && (
             <button
               onClick={handleSync}
@@ -198,28 +265,47 @@ export default function ProductsClient() {
         </div>
       </div>
 
+      {/* Invoice mode indicator */}
+      {isInvoice && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-700">
+          <span className="font-medium">{t('prod_invTitle')}</span>
+          {invoiceItemCount > 0 && (
+            <span className="font-semibold">{invoiceItemCount} {t('prod_invItems')} · ${invoiceTotal.toFixed(2)}</span>
+          )}
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colProduct')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colPrice')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colBarcode')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colMinPrice')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colWeight')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colStock')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('prod_colQb')}</th>
-              {isAdmin && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"></th>}
+              <th className={thCls}>{t('prod_colProduct')}</th>
+              <th className={thCls}>{t('prod_colPrice')}</th>
+              <th className={thCls}>{t('prod_colBarcode')}</th>
+              <th className={thCls}>{t('prod_colMinPrice')}</th>
+              <th className={thCls}>{t('prod_colWeight')}</th>
+              <th className={thCls}>{t('prod_colUnit')}</th>
+              <th className={thCls}>{t('prod_colQty')}</th>
+              {isInvoice && <th className={thCls}>{t('prod_colRate')}</th>}
+              {isInvoice && <th className={thCls}>{t('prod_colAmount')}</th>}
+              <th className={thCls}>{t('prod_colStock')}</th>
+              <th className={thCls}>{t('prod_colQb')}</th>
+              {isAdmin && <th className={`${thCls} w-12`}></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {products.map(p => (
-              <ProductRow key={p.id} product={p} isAdmin={isAdmin} onEdit={setEditProduct} />
+              <ProductRow key={p.id} product={p} isAdmin={isAdmin} onEdit={setEditProduct}
+                isInvoice={isInvoice}
+                qty={qtyMap[p.id] ?? (isInvoice ? (p.qty || 1) : 0)}
+                rate={rateMap[p.id] ?? p.price}
+                onQtyChange={handleQtyChange}
+                onRateChange={handleRateChange} />
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-slate-400">
                   {search
                     ? `${t('prod_noResults')} "${search}"`
                     : t('prod_empty')}
@@ -289,6 +375,7 @@ export default function ProductsClient() {
           onSaved={() => { setEditProduct(null); loadProducts() }}
         />
       )}
+
     </div>
   )
 }

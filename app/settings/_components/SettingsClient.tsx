@@ -30,6 +30,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
   const [address,     setAddress]     = useState(settings?.address ?? '')
   const [phone,       setPhone]       = useState(settings?.phone ?? '')
   const [city,        setCity]        = useState(settings?.city ?? '')
+  const [disclaimer,  setDisclaimer]  = useState(settings?.disclaimer ?? '')
   const [saving,      setSaving]      = useState(false)
   const [msg,         setMsg]         = useState<{ text: string; ok: boolean } | null>(null)
   const [qbStatus,    setQbStatus]    = useState<QbStatus | null>(null)
@@ -61,6 +62,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           address: address || null,
           phone:   phone   || null,
           city:    city    || null,
+          disclaimer: disclaimer || null,
         }),
       })
       if (res.status === 401) { logout(); return }
@@ -161,6 +163,17 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                 />
               </div>
             </div>
+
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">Disclaimer / Legal Terms</label>
+              <textarea value={disclaimer}
+                onChange={e => setDisclaimer(e.target.value)}
+                placeholder="I hereby acknowledge that all above referenced goods have been received..."
+                rows={4}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100 resize-y"
+              />
+              <p className="mt-1 text-xs text-slate-400">Shown on printed tickets and receipts. Leave empty to omit.</p>
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -211,6 +224,12 @@ export default function SettingsClient({ settings, fetchError }: Props) {
             <p className="text-center text-lg font-bold">$45.00</p>
             <p className="text-center text-slate-400 mt-1">1.50 lb total</p>
             <p className="text-center text-slate-400 mt-3">{companyName || 'EMPRESA'}</p>
+            {disclaimer && (
+              <>
+                <div className="my-3 border-t border-dashed border-slate-300" />
+                <p className="text-[10px] leading-4 text-slate-500">{disclaimer}</p>
+              </>
+            )}
           </div>
           <p className="mt-3 text-xs text-slate-400">{t('cfg_previewNote')}</p>
         </div>

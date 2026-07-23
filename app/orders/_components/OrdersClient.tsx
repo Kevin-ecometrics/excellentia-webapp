@@ -31,6 +31,8 @@ interface DamageItem {
   barcode: string
   product_name: string
   qty: number
+  unit_price?: number
+  amount?: number
 }
 
 const statusCls: Record<string, string> = {
@@ -269,26 +271,47 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                 <p>--------------------------------</p>
                 <p className="font-bold">{t('tkt_negSale')}</p>
                 {ticketDamageItems.map((d, i) => (
-                  <p key={i} className="pl-2">{d.product_name}: {d.qty} unit(s)</p>
+                  <p key={i} className="pl-2">
+                    {d.product_name}: {d.qty} unit(s) · {fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}
+                  </p>
                 ))}
               </>
             )}
 
             {/* Total */}
             <p>================================</p>
-            <div className="flex justify-between font-bold">
-              <span>{t('tkt_total')}</span>
-              <span>{fmt(ticketBatch.total)}</span>
-            </div>
+            {(() => {
+              const creditsTotal = ticketDamageItems.reduce(
+                (sum, d) => sum + (d.amount ?? d.qty * (d.unit_price ?? 0)), 0
+              )
+              return (
+                <>
+                  {creditsTotal > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>{t('tkt_subtotal')}</span>
+                        <span>{fmt(ticketBatch.total)}</span>
+                      </div>
+                      <div className="flex justify-between text-red-600 font-semibold">
+                        <span>{t('tkt_credits')}</span>
+                        <span>{fmt(-creditsTotal)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between font-bold">
+                    <span>{t('tkt_total')}</span>
+                    <span>{fmt(ticketBatch.total - creditsTotal)}</span>
+                  </div>
+                </>
+              )
+            })()}
             <p>{ticketBatch.orders.reduce((s,o) => s + Number(o.quantity), 0).toFixed(2)} {t('tkt_lbTotal')}</p>
             <p>{company.company_name}</p>
 
             {/* Terms and conditions */}
             <p className="mt-1">--------------------------------</p>
             <p className="text-[10px] leading-4 text-slate-600">
-              I hereby acknowledge that all above referenced goods have been received and are in
-              good condition. I also understand that this sale is expressly conditioned upon my
-              assent to all terms on the reverse of this page and I accept all the terms of this sale.
+              {company.disclaimer || `Terms and Conditions:\n\n(1) Seller retains title to the goods until buyer performs the entire contract and goods have been paid for in full. Seller retains a security interest in the goods, including all additions and replacements, to secure performance of all buyer's obligations under this contract.\n\n(2) The buyer is responsible for any loss or damage to goods once they are in buyer's possession.\n\n(3) Any claim of immediately apparent defect against delivered goods must be made upon receipt. In the case of hidden defects, buyer shall have no more than 3 days to present seller with a claim of defect.\n\n(4) The goods sold in this invoice will only be used for resale.\n\n(5) In any action which may be brought to enforce payment under this contract, seller shall be entitled to recover from buyer all the attorney fees seller incurs, in addition to seller's actual, incidental, and consequential damages.\n\n(6) Buyer agrees to pay a fee of $30.00 for each check drawn on insufficient funds (NSF Check).\n\n(7) Buyer agrees that jurisdiction and venue for any dispute under this contract are proper in San Diego, CA.`}
             </p>
 
             {/* Signature */}
@@ -562,13 +585,21 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                         {/* Negative Sale */}
                         {(expandedDamage.get(batch.batchId)?.length ?? 0) > 0 && (
                           <div className="mt-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
-                            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                              Negative Sale
-                            </p>
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+                                Negative Sale
+                              </p>
+                              <p className="text-xs font-bold text-red-600">
+                                {fmt(-expandedDamage.get(batch.batchId)!.reduce((s, d) => s + (d.amount ?? d.qty * (d.unit_price ?? 0)), 0))}
+                              </p>
+                            </div>
                             <div className="flex flex-wrap gap-2">
                               {expandedDamage.get(batch.batchId)!.map((d, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white border border-orange-200 px-2.5 py-1 text-xs font-medium text-orange-700">
                                   <span className="font-semibold">{d.qty}</span> × {d.product_name}
+                                  {(d.amount ?? d.unit_price) != null && (
+                                    <span className="text-orange-500">{fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}</span>
+                                  )}
                                 </span>
                               ))}
                             </div>

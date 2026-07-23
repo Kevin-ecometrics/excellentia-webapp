@@ -13,7 +13,10 @@ export interface Product {
   stock: number
   description: string | null
   weight_per_unit: number | null
+  unit: string | null
+  qty: number
   qb_item_id: string | null
+  qb_active: boolean | number | null
 }
 
 export default function ProductsPage() {

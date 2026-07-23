@@ -10,6 +10,7 @@ export interface CustomerStat {
   batch_count: number
   total_spent: number
   last_order_at: string
+  total_credits: number
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'

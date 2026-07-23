@@ -17,7 +17,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   const { t } = useLang()
   const isEdit = !!product
 
-  const [form, setForm] = useState({ name: '', price: '', min_price: '', barcode: '', weight_per_unit: '', stock: '0', description: '' })
+  const [form, setForm] = useState({ name: '', price: '', min_price: '', barcode: '', unit: '', qty: '0', weight_per_unit: '', stock: '0', description: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -29,6 +29,8 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
         price: product.price.toString(),
         min_price: product.min_price?.toString() ?? '',
         barcode: product.barcode ?? '',
+        unit: product.unit ?? '',
+        qty: product.qty?.toString() ?? '0',
         weight_per_unit: product.weight_per_unit?.toString() ?? '',
         stock: product.stock.toString(),
         description: product.description ?? '',
@@ -67,6 +69,8 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
       }
       if (form.barcode.trim()) body.barcode = form.barcode.trim()
       if (form.min_price) body.min_price = parseFloat(form.min_price)
+      if (form.unit) body.unit = form.unit
+      body.qty = parseInt(form.qty) || 0
       if (form.weight_per_unit) body.weight_per_unit = parseFloat(form.weight_per_unit)
       body.stock = parseInt(form.stock) || 0
       body.description = form.description.trim() || null
@@ -138,6 +142,24 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           </div>
 
           <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_unit')}</label>
+            <select value={form.unit} onChange={e => set('unit', e.target.value)}
+              className={inp}>
+              <option value="">{t('modal_unitNone')}</option>
+              <option value="Lbs">Lbs</option>
+              <option value="Unit">Unit</option>
+              <option value="Bucket">Bucket</option>
+              <option value="Case">Case</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_qty')}</label>
+            <input type="number" step="1" min="0" value={form.qty} onChange={e => set('qty', e.target.value)}
+              className={inp} placeholder="0" />
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_barcode')}</label>
             <input type="text" value={form.barcode} onChange={e => set('barcode', e.target.value)}
               className={`${inp} font-mono`} placeholder={t('modal_barcodePh')} />
@@ -159,14 +181,19 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
           {/* QB sync status */}
           {isEdit && (
-            product?.qb_item_id
-              ? <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  {t('modal_qbSynced')} {product.qb_item_id}
-                </div>
-              : <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            !product?.qb_item_id
+              ? <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   {t('modal_qbNotLinked')}
+                </div>
+              : (product.qb_active === 0 || product.qb_active === false)
+              ? <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  {t('modal_qbInactive')}
+                </div>
+              : <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  {t('modal_qbSynced')} {product.qb_item_id}
                 </div>
           )}
 

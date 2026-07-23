@@ -13,7 +13,7 @@ type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom'
 
 interface Stats {
   period: Period
-  kpis: { ordersPeriod: number; revenuePeriod: number; revenueTotal: number; pending: number; sent: number; failed: number }
+  kpis: { ordersPeriod: number; revenuePeriod: number; revenueTotal: number; pending: number; sent: number; failed: number; creditsPeriod: number }
   byHour: { hour: number; count: number }[]
   byDay:  { day: string; sent: number; failed: number }[]
   top5:   { name: string; total: number; count: number }[]

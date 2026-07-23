@@ -11,6 +11,7 @@ export interface CompanySettings {
   address: string | null
   phone: string | null
   city: string | null
+  disclaimer: string | null
   updated_at: string
 }
 

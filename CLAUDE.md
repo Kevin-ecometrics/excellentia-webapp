@@ -62,6 +62,18 @@ Next.js 16 nombra el middleware `proxy.ts` (exporta `proxy`). No crear `middlewa
 
 Nombre + descripción (gris, truncada) · Precio/lb · Barcode · Precio min · Peso · Stock (rojo=0, ámbar≤5, normal) · QB badge · Botón editar (admin)
 
+### QB badge — 3 estados
+
+`qb_active` (`TINYINT(1) NULL`, sincronizado desde QBO — no editable en el modal) distingue si el item está *inactivo dentro de QuickBooks mismo*, algo distinto de si está vinculado o no (`qb_item_id`):
+
+| Estado | Badge | Condición |
+|---|---|---|
+| Sin vincular | gris "—" | `qb_item_id` es `null` |
+| Vinculado, inactivo en QBO | rojo "QB inactivo" | `qb_item_id` existe y `qb_active === 0` |
+| Vinculado, activo | verde "QB" | `qb_item_id` existe y `qb_active` es `1` o `null` (nunca sincronizado desde que existe el campo — no se asume inactivo) |
+
+Mismo criterio en `ProductModal.tsx` (caja de estado arriba del formulario). `qb_active` se llena en el sync desde QBO — la consulta a QBO (`Active IN (true, false)`) trae también items inactivos, que por defecto QBO excluye.
+
 ## Arquitectura
 
 - `proxy.ts` — middleware, protege rutas
@@ -126,6 +138,10 @@ Si `ticketBatch.signature !== null`, se renderiza después del total:
 ### Badge en tabla
 
 Los batches con firma muestran chip `✎ firma` (azul) junto al ID del pedido.
+
+### Créditos por daño (Fase 75)
+
+`DamageItem` (interfaz local en `OrdersClient.tsx`) gana `unit_price?`/`amount?`, poblados por `GET /api/orders/damage/:batchId` (columnas nuevas en `batch_damage`). En el modal de ticket, si `creditsTotal = Σ (amount ?? qty*unit_price) > 0`, el bloque de Total pasa de una sola línea a `Subtotal` / `Créditos` (`t('tkt_credits')`) / `Total` (`ticketBatch.total - creditsTotal`) — sin crédito, se ve exactamente igual que antes. Los chips de "Negative Sale" en la fila expandible también muestran el monto. Claves i18n `tkt_subtotal`/`tkt_credits` agregadas en `es`/`en` — ver `app/lib/i18n.ts`.
 
 ### API usada
 

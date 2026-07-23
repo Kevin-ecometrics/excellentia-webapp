@@ -7,29 +7,46 @@ interface Props {
   product: Product
   isAdmin: boolean
   onEdit: (product: Product) => void
+  qty?: number
+  rate?: number
+  isInvoice?: boolean
+  onQtyChange?: (id: number, qty: number) => void
+  onRateChange?: (id: number, rate: number) => void
 }
 
-export function ProductRow({ product, isAdmin, onEdit }: Props) {
+export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvoice = false, onQtyChange, onRateChange }: Props) {
   const { t } = useLang()
   const stockColor =
     product.stock === 0 ? 'text-red-500' :
     product.stock <= 5  ? 'text-amber-500' :
     'text-zinc-900'
 
+  const qbInactive = !!product.qb_item_id && (product.qb_active === 0 || product.qb_active === false)
+
   const qbBadge = (
     <td className="px-4 py-3">
-      {product.qb_item_id ? (
+      {!product.qb_item_id ? (
+        <span className="text-xs text-slate-400">—</span>
+      ) : qbInactive ? (
+        <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          {t('prod_qbInactive')}
+        </span>
+      ) : (
         <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
           QB
         </span>
-      ) : (
-        <span className="text-xs text-slate-400">—</span>
       )}
     </td>
   )
+
+  const qtyStep = product.unit === 'Lbs' ? '0.01' : '1'
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
@@ -49,6 +66,30 @@ export function ProductRow({ product, isAdmin, onEdit }: Props) {
       <td className="px-4 py-3 text-zinc-700">
         {product.weight_per_unit != null ? `${Number(product.weight_per_unit)}` : <span className="text-slate-400">—</span>}
       </td>
+      <td className="px-4 py-3 text-xs font-medium text-zinc-700">
+        {product.unit ?? <span className="text-slate-400">—</span>}
+      </td>
+      <td className="px-4 py-3 text-zinc-700">
+        {isInvoice ? (
+          <input type="number" step={qtyStep} min="0" value={qty}
+            onChange={e => onQtyChange?.(product.id, parseFloat(e.target.value) || 0)}
+            className="w-20 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
+        ) : (
+          <span className="font-medium text-zinc-900">{product.qty}</span>
+        )}
+      </td>
+      {isInvoice && (
+        <td className="px-4 py-3">
+          <input type="number" step="0.01" min="0" value={rate}
+            onChange={e => onRateChange?.(product.id, parseFloat(e.target.value) || 0)}
+            className="w-24 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
+        </td>
+      )}
+      {isInvoice && (
+        <td className="px-4 py-3 font-semibold text-zinc-900">
+          ${(qty * rate).toFixed(2)}
+        </td>
+      )}
       <td className="px-4 py-3">
         <span className={`font-semibold ${stockColor}`}>{product.stock}</span>
       </td>

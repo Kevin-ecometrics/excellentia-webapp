@@ -12,7 +12,7 @@ const statusBadge: Record<string, string> = {
   FAILED: 'bg-red-100 text-red-700', CANCELLED: 'bg-slate-100 text-slate-500',
 }
 
-interface Kpis { ordersPeriod: number; revenuePeriod: number; revenueTotal: number; pending: number; sent: number; failed: number }
+interface Kpis { ordersPeriod: number; revenuePeriod: number; revenueTotal: number; pending: number; sent: number; failed: number; creditsPeriod: number }
 interface RecentOrder { id: number; product_name: string; customer_name: string | null; total: number; status: string; created_at: string; batch_id: string | null }
 interface Top5Item { name: string; total: number; count: number }
 interface Products { total: number; withQb: number; noBarcode: number; noWeight: number }
@@ -74,7 +74,7 @@ export default function DashboardClient({ period, customFrom, customTo, kpis: k,
       </div>
 
       {/* KPI Cards */}
-      <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <div className="rounded-xl bg-white border border-slate-200 p-3 sm:p-5 shadow-sm">
           <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide">{t('dash_revenue')} · {pLabel}</p>
           <p className="mt-1 sm:mt-2 text-lg sm:text-2xl font-bold text-zinc-900">{fmt(k?.revenuePeriod ?? 0)}</p>
@@ -96,6 +96,11 @@ export default function DashboardClient({ period, customFrom, customTo, kpis: k,
           <p className={`mt-0.5 sm:mt-1 text-[11px] sm:text-xs ${(k?.failed ?? 0) > 0 ? 'text-red-400' : 'text-slate-400'}`}>
             {(k?.failed ?? 0) > 0 ? t('dash_failedAlert') : t('dash_failedOk')}
           </p>
+        </div>
+        <div className={`rounded-xl border p-3 sm:p-5 shadow-sm ${(k?.creditsPeriod ?? 0) > 0 ? 'bg-red-50 border-red-100' : 'bg-white border-slate-200'}`}>
+          <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-wide ${(k?.creditsPeriod ?? 0) > 0 ? 'text-red-500' : 'text-slate-500'}`}>{t('dash_creditsIssued')}</p>
+          <p className={`mt-1 sm:mt-2 text-lg sm:text-2xl font-bold ${(k?.creditsPeriod ?? 0) > 0 ? 'text-red-700' : 'text-zinc-900'}`}>{fmt(k?.creditsPeriod ?? 0)}</p>
+          <p className={`mt-0.5 sm:mt-1 text-[11px] sm:text-xs ${(k?.creditsPeriod ?? 0) > 0 ? 'text-red-400' : 'text-slate-400'}`}>{t('dash_creditsNote')}</p>
         </div>
       </div>
 
