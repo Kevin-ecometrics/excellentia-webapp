@@ -9,8 +9,9 @@ export interface CustomerStat {
   customer_name: string
   batch_count: number
   total_spent: number
-  last_order_at: string
+  last_order_at: string | null
   total_credits: number
+  available_credit: number
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'

@@ -87,7 +87,7 @@ export default function CreditsClient({ credits, summary, fetchError }: Props) {
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-500">#{c.batch_id.slice(-8).toUpperCase()}</td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                  {c.invoice_id ? `#${c.invoice_id}` : <span className="text-slate-300">—</span>}
+                  {c.invoice_id ? `#${c.invoice_id}` : <span className="text-slate-300 italic">{t('crd_noInvoice')}</span>}
                 </td>
                 <td className="px-4 py-3 text-right font-semibold text-red-600">{fmt(-c.amount)}</td>
               </tr>

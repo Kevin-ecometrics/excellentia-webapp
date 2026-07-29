@@ -25,6 +25,10 @@ interface Batch {
   status: string
   createdAt: string
   invoiceId: string | null
+  paymentMethod: string | null
+  checkNumber: string | null
+  creditApplied: number | null
+  damageCredits: number
 }
 
 interface DamageItem {
@@ -75,6 +79,10 @@ function groupBatches(orders: OrderRow[]): Batch[] {
       status: allSent ? 'SENT' : anyFailed ? 'FAILED' : 'PENDING',
       createdAt: items[0]?.created_at ?? '',
       invoiceId: items[0]?.qb_invoice_id ?? null,
+      paymentMethod: items[0]?.payment_method ?? null,
+      checkNumber: items[0]?.check_number ?? null,
+      creditApplied: Number(items[0]?.credit_applied) || null,
+      damageCredits: Number(items[0]?.damage_credits) || 0,
     }
   })
 }
@@ -98,8 +106,20 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     CANCELLED: { label: t('ord_labelCancelled'), cls: statusCls.CANCELLED },
   }
 
+  const paymentLabel: Record<string, string> = {
+    Cash: t('ord_paymentCash'),
+    Check: t('ord_paymentCheck'),
+    'On Account': t('ord_paymentAccount'),
+  }
+  const paymentCls: Record<string, string> = {
+    Cash: 'bg-green-100 text-green-700',
+    Check: 'bg-blue-100 text-blue-700',
+    'On Account': 'bg-amber-100 text-amber-700',
+  }
+
   const [dateFilter, setDateFilter] = useState<'TODAY' | 'ALL'>('TODAY')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
@@ -155,6 +175,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
   const filtered = useMemo(() => {
     let result = dateFiltered
     if (statusFilter !== 'ALL') result = result.filter(b => b.status === statusFilter)
+    if (paymentFilter !== 'ALL') result = result.filter(b => b.paymentMethod === paymentFilter)
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(b =>
@@ -164,7 +185,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       )
     }
     return result
-  }, [dateFiltered, statusFilter, search])
+  }, [dateFiltered, statusFilter, paymentFilter, search])
 
   const counts = useMemo(() => ({
     all: dateFiltered.length,
@@ -216,6 +237,13 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     { key: 'FAILED',  label: t('ord_statusFailed'),  count: counts.failed },
   ]
 
+  const paymentChips = [
+    { key: 'ALL',        label: t('ord_paymentAll') },
+    { key: 'Cash',       label: t('ord_paymentCash') },
+    { key: 'Check',      label: t('ord_paymentCheck') },
+    { key: 'On Account', label: t('ord_paymentAccount') },
+  ]
+
   return (
     <>
     {/* Modal ticket */}
@@ -251,6 +279,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                 <p>--------------------------------</p>
                 <p>{t('tkt_customer')} {ticketBatch.customerName}</p>
               </>
+            )}
+            {ticketBatch.paymentMethod && (
+              <p>{t('tkt_payment')} {ticketBatch.paymentMethod === 'Check' && ticketBatch.checkNumber ? `Check #${ticketBatch.checkNumber}` : ticketBatch.paymentMethod}</p>
             )}
 
             {/* Items */}
@@ -298,9 +329,15 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                       </div>
                     </>
                   )}
+                  {ticketBatch.creditApplied && ticketBatch.creditApplied > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                      <span>Credit Applied</span>
+                      <span>{fmt(-ticketBatch.creditApplied)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-bold">
                     <span>{t('tkt_total')}</span>
-                    <span>{fmt(ticketBatch.total - creditsTotal)}</span>
+                    <span>{fmt(ticketBatch.total - creditsTotal - (ticketBatch.creditApplied ?? 0))}</span>
                   </div>
                 </>
               )
@@ -417,6 +454,13 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             </button>
           ))}
         </div>
+
+        {/* Payment */}
+        <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100">
+          {paymentChips.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+        </select>
+
         <div className="relative flex-1 min-w-[200px]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -438,6 +482,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colCustomer')}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colProducts')}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colTotal')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colPayment')}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colStatus')}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colDate')}</th>
               {isAdmin && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colOperator')}</th>}
@@ -490,7 +535,21 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                         {batch.orders.length} {t('ord_items')}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-900">{fmt(batch.total)}</td>
+                    <td className="px-4 py-3 font-semibold text-zinc-900">{fmt(batch.total - batch.damageCredits - (batch.creditApplied ?? 0))}</td>
+                    <td className="px-4 py-3">
+                      {batch.paymentMethod ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${paymentCls[batch.paymentMethod] ?? 'bg-slate-100 text-slate-500'}`}>
+                            {paymentLabel[batch.paymentMethod] ?? batch.paymentMethod}
+                          </span>
+                          {batch.paymentMethod === 'Check' && batch.checkNumber && (
+                            <span className="text-[10px] text-slate-400">#{batch.checkNumber}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${cfg.cls}`}>
                         {cfg.label}
@@ -547,7 +606,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                   {/* Expanded items */}
                   {isExpanded && (
                     <tr key={`${batch.batchId}-items`}>
-                      <td colSpan={isAdmin ? 7 : 6} className="bg-slate-50 px-4 pb-3 pt-0">
+                      <td colSpan={isAdmin ? 9 : 7} className="bg-slate-50 px-4 pb-3 pt-0">
                         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                           <table className="w-full text-xs">
                             <thead>
@@ -613,7 +672,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 8 : 6} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={isAdmin ? 9 : 7} className="px-4 py-12 text-center text-sm text-slate-400">
                   {search || statusFilter !== 'ALL'
                     ? t('ord_emptyFilter')
                     : dateFilter === 'TODAY'

@@ -11,10 +11,18 @@ interface Props {
 }
 
 interface CreditEntry {
-  batch_id: string
+  type: 'EARNED' | 'USED'
+  reference_batch_id: string | null
   invoice_id: string | null
   amount: number
   created_at: string
+}
+
+interface CreditBalanceInfo {
+  customer_id: string
+  balance: number
+  earned_total: number
+  used_total: number
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -22,7 +30,8 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
-function fmtDate(iso: string) {
+function fmtDate(iso: string | null) {
+  if (!iso) return ''
   try { return new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) }
   catch { return '' }
 }
@@ -32,6 +41,7 @@ export default function CustomersClient({ customers, fetchError }: Props) {
   const [search, setSearch] = useState('')
   const [creditModal, setCreditModal] = useState<CustomerStat | null>(null)
   const [creditHistory, setCreditHistory] = useState<CreditEntry[]>([])
+  const [creditBalance, setCreditBalance] = useState<CreditBalanceInfo | null>(null)
   const [loadingCredits, setLoadingCredits] = useState(false)
 
   const filtered = useMemo(() =>
@@ -46,6 +56,7 @@ export default function CustomersClient({ customers, fetchError }: Props) {
   async function openCreditHistory(customer: CustomerStat) {
     setCreditModal(customer)
     setCreditHistory([])
+    setCreditBalance(null)
     setLoadingCredits(true)
     try {
       const res = await apiFetch(`${API}/api/customers/${customer.customer_id}/credits`)
@@ -53,6 +64,7 @@ export default function CustomersClient({ customers, fetchError }: Props) {
       if (res.ok) {
         const data = await res.json()
         setCreditHistory(data.data ?? [])
+        setCreditBalance(data.balance ?? null)
       }
     } catch { /* sin conexión */ }
     finally { setLoadingCredits(false) }
@@ -81,6 +93,7 @@ export default function CustomersClient({ customers, fetchError }: Props) {
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50">
                       <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">{t('cust_creditDate')}</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Type</th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">{t('cust_creditOrder')}</th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">{t('crd_colInvoice')}</th>
                       <th className="px-3 py-2 text-right font-semibold text-slate-400 uppercase tracking-wide">{t('cust_creditAmount')}</th>
@@ -88,24 +101,35 @@ export default function CustomersClient({ customers, fetchError }: Props) {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {loadingCredits ? (
-                      <tr><td colSpan={4} className="px-3 py-6 text-center text-slate-400">…</td></tr>
+                      <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">…</td></tr>
                     ) : creditHistory.length === 0 ? (
-                      <tr><td colSpan={4} className="px-3 py-6 text-center text-slate-400">{t('cust_noCredits')}</td></tr>
+                      <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">{t('cust_noCredits')}</td></tr>
                     ) : creditHistory.map((c, i) => (
                       <tr key={i} className="hover:bg-slate-50">
                         <td className="px-3 py-2 text-slate-500">{fmtDate(c.created_at)}</td>
-                        <td className="px-3 py-2 font-mono text-slate-500">#{c.batch_id.slice(-8).toUpperCase()}</td>
-                        <td className="px-3 py-2 font-mono text-slate-500">{c.invoice_id ? `#${c.invoice_id}` : '—'}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-red-600">{fmt(-c.amount)}</td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.type === 'EARNED' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                            {c.type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-slate-500">
+                          {c.reference_batch_id ? `#${c.reference_batch_id.slice(-8).toUpperCase()}` : '—'}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-slate-500">
+                          {c.invoice_id ? `#${c.invoice_id}` : <span className="italic">{t('crd_noInvoice')}</span>}
+                        </td>
+                        <td className={`px-3 py-2 text-right font-semibold ${c.type === 'EARNED' ? 'text-red-600' : 'text-green-600'}`}>
+                          {c.type === 'USED' ? fmt(-c.amount) : fmt(c.amount)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
-                  {creditHistory.length > 0 && (
+                  {creditBalance && (
                     <tfoot>
                       <tr className="border-t border-slate-100 bg-slate-50">
-                        <td colSpan={3} className="px-3 py-2 text-right font-semibold text-slate-500">{t('cust_creditsIssued')}</td>
-                        <td className="px-3 py-2 text-right font-bold text-red-600">
-                          {fmt(-creditHistory.reduce((s, c) => s + Number(c.amount), 0))}
+                        <td colSpan={4} className="px-3 py-2 text-right font-semibold text-slate-500">Available Credit</td>
+                        <td className={`px-3 py-2 text-right font-bold ${creditBalance.balance > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                          {fmt(creditBalance.balance)}
                         </td>
                       </tr>
                     </tfoot>
@@ -168,6 +192,7 @@ export default function CustomersClient({ customers, fetchError }: Props) {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('cust_colQbId')}</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t('cust_colOrders')}</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t('cust_colBilled')}</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Available</th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t('cust_colCredits')}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('cust_colLast')}</th>
             </tr>
@@ -192,11 +217,20 @@ export default function CustomersClient({ customers, fetchError }: Props) {
                 <td className="px-4 py-3 text-right font-medium text-zinc-800">{c.batch_count}</td>
                 <td className="px-4 py-3 text-right font-semibold text-zinc-900">{fmt(Number(c.total_spent))}</td>
                 <td className="px-4 py-3 text-right">
-                  {Number(c.total_credits ?? 0) > 0 ? (
+                  {Number(c.available_credit ?? 0) > 0 ? (
                     <button onClick={() => openCreditHistory(c)}
-                      className="font-semibold text-red-600 hover:underline" title={t('cust_viewCredits')}>
-                      {fmt(Number(c.total_credits))}
+                      className="font-semibold text-green-600 hover:underline" title={t('cust_viewCredits')}>
+                      {fmt(Number(c.available_credit))}
                     </button>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {Number(c.total_credits ?? 0) > 0 ? (
+                    <span className="text-xs text-red-500 cursor-help" title="Total credits earned (including used)">
+                      {fmt(Number(c.total_credits))}
+                    </span>
                   ) : (
                     <span className="text-slate-300">—</span>
                   )}

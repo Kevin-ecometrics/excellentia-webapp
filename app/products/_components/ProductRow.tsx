@@ -52,6 +52,9 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
     <tr className="hover:bg-slate-50 transition-colors">
       <td className="px-4 py-3">
         <p className="font-medium text-zinc-900">{product.name}</p>
+        {product.short_name && (
+          <p className="mt-0.5 text-[11px] font-medium text-blue-500 truncate max-w-[200px]">{product.short_name}</p>
+        )}
         {product.description && (
           <p className="mt-0.5 text-[11px] text-slate-400 truncate max-w-[200px]">{product.description}</p>
         )}
@@ -67,7 +70,9 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
         {product.weight_per_unit != null ? `${Number(product.weight_per_unit)}` : <span className="text-slate-400">—</span>}
       </td>
       <td className="px-4 py-3 text-xs font-medium text-zinc-700">
-        {product.unit ?? <span className="text-slate-400">—</span>}
+        {product.unit === 'Case' || product.unit === 'Unit'
+          ? 'Case/Unit'
+          : (product.unit ?? <span className="text-slate-400">—</span>)}
       </td>
       <td className="px-4 py-3 text-zinc-700">
         {isInvoice ? (

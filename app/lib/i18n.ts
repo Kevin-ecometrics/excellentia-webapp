@@ -97,6 +97,8 @@ export const translations = {
     modal_editProd:       'Edit product',
     modal_newProd:        'New product',
     modal_name:           'Name *',
+    modal_shortName:      'Short name (ticket)',
+    modal_shortNamePh:    'Shown on printed ticket instead of full name',
     modal_salesDesc:      'Sales description',
     modal_salesDescPh:    'Description shown in QBO (Sales Description)',
     modal_price:          'Price ($/lb) *',
@@ -154,6 +156,11 @@ export const translations = {
     ord_colProducts:   'Productos',
     ord_colTotal:      'Total',
     ord_colStatus:     'Estado',
+    ord_colPayment:    'Pago',
+    ord_paymentAll:     'Todos los pagos',
+    ord_paymentCash:    'Cash',
+    ord_paymentCheck:   'Check',
+    ord_paymentAccount: 'A cuenta',
     ord_colDate:       'Fecha',
     ord_colOperator:   'Operador',
     ord_noCustomer:    'Sin cliente',
@@ -170,6 +177,7 @@ export const translations = {
     ord_invoice:       'Factura',
     // Ticket modal
     tkt_customer:      'Cliente:',
+    tkt_payment:       'Pago:',
     tkt_invoice:       'Factura #',
     tkt_order:         'Pedido  #',
     tkt_negSale:       'Resumen de devoluciones:',
@@ -325,6 +333,7 @@ export const translations = {
     crd_empty:        'Aún no se han emitido créditos',
     crd_noResults:    'Sin resultados para',
     crd_noCustomer:   'Sin cliente',
+    crd_noInvoice:    'Sin factura',
   },
 
   en: {
@@ -423,6 +432,8 @@ export const translations = {
     modal_editProd:       'Edit product',
     modal_newProd:        'New product',
     modal_name:           'Name *',
+    modal_shortName:      'Short name (ticket)',
+    modal_shortNamePh:    'Shown on printed ticket instead of full name',
     modal_salesDesc:      'Sales description',
     modal_salesDescPh:    'Description shown in QBO (Sales Description)',
     modal_price:          'Price ($/lb) *',
@@ -480,6 +491,11 @@ export const translations = {
     ord_colProducts:   'Products',
     ord_colTotal:      'Total',
     ord_colStatus:     'Status',
+    ord_colPayment:    'Payment',
+    ord_paymentAll:     'All payments',
+    ord_paymentCash:    'Cash',
+    ord_paymentCheck:   'Check',
+    ord_paymentAccount: 'On Account',
     ord_colDate:       'Date',
     ord_colOperator:   'Operator',
     ord_noCustomer:    'No customer',
@@ -496,6 +512,7 @@ export const translations = {
     ord_invoice:       'Invoice',
     // Ticket modal
     tkt_customer:      'Customer:',
+    tkt_payment:       'Payment:',
     tkt_invoice:       'Invoice #',
     tkt_order:         'Order   #',
     tkt_negSale:       'Negative Sale Summary:',
@@ -651,6 +668,7 @@ export const translations = {
     crd_empty:        'No credits issued yet',
     crd_noResults:    'No results for',
     crd_noCustomer:   'No customer',
+    crd_noInvoice:    'No invoice',
   },
 } as const
 

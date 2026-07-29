@@ -17,19 +17,25 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   const { t } = useLang()
   const isEdit = !!product
 
-  const [form, setForm] = useState({ name: '', price: '', min_price: '', barcode: '', unit: '', qty: '0', weight_per_unit: '', stock: '0', description: '' })
+  const [form, setForm] = useState({ name: '', short_name: '', price: '', min_price: '', barcode: '', unit: '', qty: '0', weight_per_unit: '', stock: '0', description: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (product) {
+      // "Case" y "Unit" se fusionaron en un solo tipo, "Case/Unit" — normaliza
+      // acá para que el <select> preseleccione bien productos viejos que
+      // todavía tengan el valor legacy en la base (antes de correr la
+      // migración de datos, o cualquier fila que se le haya escapado).
+      const legacyUnit = product.unit === 'Case' || product.unit === 'Unit' ? 'Case/Unit' : product.unit
       setForm({
         name: product.name,
+        short_name: product.short_name ?? '',
         price: product.price.toString(),
         min_price: product.min_price?.toString() ?? '',
         barcode: product.barcode ?? '',
-        unit: product.unit ?? '',
+        unit: legacyUnit ?? '',
         qty: product.qty?.toString() ?? '0',
         weight_per_unit: product.weight_per_unit?.toString() ?? '',
         stock: product.stock.toString(),
@@ -65,6 +71,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
     try {
       const body: Record<string, unknown> = {
         name: form.name.trim(),
+        short_name: form.short_name.trim() || null,
         price: parseFloat(form.price),
       }
       if (form.barcode.trim()) body.barcode = form.barcode.trim()
@@ -120,6 +127,12 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           </div>
 
           <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_shortName')}</label>
+            <input type="text" value={form.short_name} onChange={e => set('short_name', e.target.value)}
+              className={inp} placeholder={t('modal_shortNamePh')} />
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_salesDesc')}</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)}
               rows={2}
@@ -147,9 +160,8 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
               className={inp}>
               <option value="">{t('modal_unitNone')}</option>
               <option value="Lbs">Lbs</option>
-              <option value="Unit">Unit</option>
+              <option value="Case/Unit">Case/Unit</option>
               <option value="Bucket">Bucket</option>
-              <option value="Case">Case</option>
             </select>
           </div>
 

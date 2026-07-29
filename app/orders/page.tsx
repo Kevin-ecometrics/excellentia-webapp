@@ -20,6 +20,10 @@ export interface OrderRow {
   user_id: number | null
   user_email: string | null
   user_name: string | null
+  payment_method: string | null
+  check_number: string | null
+  credit_applied: number | null
+  damage_credits: number | null
   created_at: string
 }
 

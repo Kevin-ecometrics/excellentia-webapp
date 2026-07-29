@@ -6,6 +6,7 @@ export interface Product {
   id: number
   barcode: string | null
   name: string
+  short_name: string | null
   price: number
   min_price: number | null
   category: string | null
