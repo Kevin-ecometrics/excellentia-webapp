@@ -153,3 +153,9 @@ Los batches con firma muestran chip `✎ firma` (azul) junto al ID del pedido.
 | `GET /api/settings` | Info empresa para modal ticket |
 
 `listOrders` usa `SELECT o.*` → `signature` se incluye automáticamente sin cambios extra en el backend.
+
+---
+
+## Pendientes / a considerar
+
+- **Aviso de fallo de sync a QBO en `ProductModal.tsx`** — hoy el `PUT /api/products/:id` responde éxito siempre, aunque el push a QBO (`updateItemMeta`/`updateItemQtyOnHand`) haya fallado silenciosamente. El backend va a devolver si ese sync realmente se confirmó contra QBO (parte del fix del bug donde el sync automático de 5 min revertía precios editados recientemente — ver `excellentia/CLAUDE.md`). Falta que el modal lea ese campo y muestre un aviso en vez de cerrar como si todo hubiera salido bien.
