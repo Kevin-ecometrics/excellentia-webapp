@@ -186,6 +186,8 @@ export const translations = {
     tkt_total:         'TOTAL:',
     tkt_lbTotal:       'lb total',
     tkt_signature:     'Firma del cliente:',
+    tkt_terms:         'Términos y Condiciones:',
+    tkt_scanToView:    'Escanear para ver',
 
     // Users
     usr_title:       'Usuarios',
@@ -521,6 +523,8 @@ export const translations = {
     tkt_total:         'TOTAL:',
     tkt_lbTotal:       'lb total',
     tkt_signature:     'Customer Signature:',
+    tkt_terms:         'Terms & Conditions:',
+    tkt_scanToView:    'Scan to view',
 
     // Users
     usr_title:       'Users',

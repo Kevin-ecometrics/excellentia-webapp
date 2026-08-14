@@ -37,6 +37,24 @@ interface DamageItem {
   qty: number
   unit_price?: number
   amount?: number
+  unit?: string | null
+}
+
+// Espeja isLbsUnit()/formatDamageQty() del backend (creditCalculator.ts) y de
+// la app Android (data/Models.kt) — mismo criterio en los 3 para que el
+// ticket de la webapp, el ticket impreso y la factura de QBO coincidan. Solo
+// Lbs necesita decimales; Case/Unit y Bucket siguen siendo conteos enteros.
+function isLbsUnit(unit: string | null | undefined): boolean {
+  return !unit || unit === 'Lbs'
+}
+// Number(qty): batch_damage.qty es DECIMAL(10,2) en MySQL — mysql2 devuelve
+// columnas DECIMAL como string (no como number) salvo que se configure
+// decimalNumbers en el backend, así que lo que llega acá vía fetch/JSON puede
+// ser "2.35" en vez de 2.35 aunque el tipo declarado sea `number`. Sin este
+// cast, qty.toFixed(2) revienta el render entero (string no tiene ese método).
+function formatDamageQty(qty: number, unit: string | null | undefined): string {
+  const q = Number(qty) || 0
+  return isLbsUnit(unit) ? `${q.toFixed(2)} lb` : `${Math.round(q)} unit(s)`
 }
 
 const statusCls: Record<string, string> = {
@@ -303,7 +321,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                 <p className="font-bold">{t('tkt_negSale')}</p>
                 {ticketDamageItems.map((d, i) => (
                   <p key={i} className="pl-2">
-                    {d.product_name}: {d.qty} unit(s) · {fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}
+                    {d.product_name}: {formatDamageQty(d.qty, d.unit)} · {fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}
                   </p>
                 ))}
               </>
@@ -345,11 +363,14 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             <p>{ticketBatch.orders.reduce((s,o) => s + Number(o.quantity), 0).toFixed(2)} {t('tkt_lbTotal')}</p>
             <p>{company.company_name}</p>
 
-            {/* Terms and conditions */}
+            {/* Terms and conditions — QR, mismo formato que el ticket físico (PrintService.kt) */}
             <p className="mt-1">--------------------------------</p>
-            <p className="text-[10px] leading-4 text-slate-600">
-              {company.disclaimer || `Terms and Conditions:\n\n(1) Seller retains title to the goods until buyer performs the entire contract and goods have been paid for in full. Seller retains a security interest in the goods, including all additions and replacements, to secure performance of all buyer's obligations under this contract.\n\n(2) The buyer is responsible for any loss or damage to goods once they are in buyer's possession.\n\n(3) Any claim of immediately apparent defect against delivered goods must be made upon receipt. In the case of hidden defects, buyer shall have no more than 3 days to present seller with a claim of defect.\n\n(4) The goods sold in this invoice will only be used for resale.\n\n(5) In any action which may be brought to enforce payment under this contract, seller shall be entitled to recover from buyer all the attorney fees seller incurs, in addition to seller's actual, incidental, and consequential damages.\n\n(6) Buyer agrees to pay a fee of $30.00 for each check drawn on insufficient funds (NSF Check).\n\n(7) Buyer agrees that jurisdiction and venue for any dispute under this contract are proper in San Diego, CA.`}
-            </p>
+            <p className="font-semibold">{t('tkt_terms')}</p>
+            <p>{t('tkt_scanToView')}</p>
+            <div className="flex justify-center py-1">
+              <img src="/disclaimer-qr.png" alt="Terms and Conditions QR" className="h-20 w-20" />
+            </div>
+            <p className="text-center break-all">https://excellentiafoods.com/terms-and-conditions/</p>
 
             {/* Signature */}
             <p className="mt-1">--------------------------------</p>
@@ -655,7 +676,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                             <div className="flex flex-wrap gap-2">
                               {expandedDamage.get(batch.batchId)!.map((d, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white border border-orange-200 px-2.5 py-1 text-xs font-medium text-orange-700">
-                                  <span className="font-semibold">{d.qty}</span> × {d.product_name}
+                                  <span className="font-semibold">{formatDamageQty(d.qty, d.unit)}</span> · {d.product_name}
                                   {(d.amount ?? d.unit_price) != null && (
                                     <span className="text-orange-500">{fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}</span>
                                   )}

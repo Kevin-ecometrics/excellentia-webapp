@@ -51,6 +51,8 @@ Next.js 16 nombra el middleware `proxy.ts` (exporta `proxy`). No crear `middlewa
 | Categoría | `category` | |
 | Stock | `stock` | Al guardar → sync `QtyOnHand` a QBO (solo ítems Inventory) |
 
+**Vaciar un campo (Código de barras, Precio mínimo, Unit, Peso/lb):** `handleSubmit` manda estos 4 campos siempre en el body (`valor.trim() || null` / `valor || null`), nunca los omite — antes, si dejabas el input vacío y guardabas, la key ni viajaba en el `PUT` y el backend (que solo actualiza columnas presentes con `!== undefined`) dejaba el valor viejo intacto en MySQL. Bug corregido a nivel frontend únicamente, el backend ya manejaba `null` bien.
+
 ### Validaciones del modal
 
 - Nombre: mínimo 2 caracteres (inline, borde rojo)
@@ -139,9 +141,21 @@ Si `ticketBatch.signature !== null`, se renderiza después del total:
 
 Los batches con firma muestran chip `✎ firma` (azul) junto al ID del pedido.
 
+### Términos y condiciones en el modal Ticket (QR)
+
+El pie del ticket ya no imprime el párrafo legal completo — replica el formato del ticket físico actual (`PrintService.kt` en la app Android, `AndroidStudioProjects/test`): "Términos y Condiciones:" / "Escanear para ver" + imagen QR + la URL en texto debajo (`https://excellentiafoods.com/terms-and-conditions/`, página estática del sitio `excellentiafoods-landing`, no dinámica). El QR es el mismo PNG estático que usa la app (`public/disclaimer-qr.png`, copiado de `res/drawable-nodpi/disclaimer_qr.png`), no se genera en runtime.
+
+**El campo `disclaimer` de `/settings` quedó huérfano** — ya no lo lee ni el ticket (webapp ni físico) ni la página pública de términos (estática, sin fetch a la API). Sigue editable en la UI de Settings sin motivo real; no se tocó, pendiente decidir si se remueve.
+
+Claves i18n nuevas: `tkt_terms`/`tkt_scanToView` (`es`/`en`, `app/lib/i18n.ts`).
+
 ### Créditos por daño (Fase 75)
 
 `DamageItem` (interfaz local en `OrdersClient.tsx`) gana `unit_price?`/`amount?`, poblados por `GET /api/orders/damage/:batchId` (columnas nuevas en `batch_damage`). En el modal de ticket, si `creditsTotal = Σ (amount ?? qty*unit_price) > 0`, el bloque de Total pasa de una sola línea a `Subtotal` / `Créditos` (`t('tkt_credits')`) / `Total` (`ticketBatch.total - creditsTotal`) — sin crédito, se ve exactamente igual que antes. Los chips de "Negative Sale" en la fila expandible también muestran el monto. Claves i18n `tkt_subtotal`/`tkt_credits` agregadas en `es`/`en` — ver `app/lib/i18n.ts`.
+
+**Cantidad dañada por peso real en Lbs (posterior a la Fase 75)** — `DamageItem` gana `unit?: string | null` (también devuelto ahora por `GET /api/orders/damage/:batchId`). `qty` para un producto Lbs pasó a ser el peso real dañado (antes, un conteo de piezas); helpers locales `isLbsUnit()`/`formatDamageQty()` en `OrdersClient.tsx` deciden si mostrar `"2.35 lb"` o `"N unit(s)"` — usados en el modal de ticket y en el chip de la fila expandible, reemplazando el `{d.qty} unit(s)` fijo de antes. Mismo criterio espejado en el backend (`creditCalculator.ts`) y en la app Android (`data/Models.kt`). Detalle completo del cambio en `excellentia/CLAUDE.md`.
+
+**Gotcha — `DECIMAL` vía `mysql2` no es `number` en JSON, mismo patrón que `TINYINT(1)`/`qb_active`.** `batch_damage.qty` pasó de `INT` a `DECIMAL(10,2)` para soportar el peso real — `mysql2` devuelve columnas `DECIMAL` como **string** (`"2.35"`, no `2.35`) sin `decimalNumbers` configurado en `db/connection.ts` del backend. El tipo TS `qty: number` en `DamageItem` es solo una anotación de compilación, no protege en runtime: `formatDamageQty()` hacía `qty.toFixed(2)` directo y reventaba el render completo de la página (`qty.toFixed is not a function`) apenas se expandía una orden con daño. Fix: `Number(qty) || 0` antes de formatear. Aplicar el mismo cast a cualquier otro campo `DECIMAL` leído crudo de una fila de MySQL que se use con métodos de `number` (no solo en operadores aritméticos/relacionales, esos sí coaccionan solos).
 
 ### API usada
 
@@ -159,3 +173,4 @@ Los batches con firma muestran chip `✎ firma` (azul) junto al ID del pedido.
 ## Pendientes / a considerar
 
 - **Aviso de fallo de sync a QBO en `ProductModal.tsx`** — hoy el `PUT /api/products/:id` responde éxito siempre, aunque el push a QBO (`updateItemMeta`/`updateItemQtyOnHand`) haya fallado silenciosamente. El backend va a devolver si ese sync realmente se confirmó contra QBO (parte del fix del bug donde el sync automático de 5 min revertía precios editados recientemente — ver `excellentia/CLAUDE.md`). Falta que el modal lea ese campo y muestre un aviso en vez de cerrar como si todo hubiera salido bien.
+- **Campo `disclaimer` de Settings sin uso real** — ver nota en "Términos y condiciones en el modal Ticket (QR)" más arriba. Decidir si se saca del formulario de Settings o se deja.

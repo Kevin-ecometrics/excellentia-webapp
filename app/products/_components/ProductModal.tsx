@@ -74,11 +74,11 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
         short_name: form.short_name.trim() || null,
         price: parseFloat(form.price),
       }
-      if (form.barcode.trim()) body.barcode = form.barcode.trim()
-      if (form.min_price) body.min_price = parseFloat(form.min_price)
-      if (form.unit) body.unit = form.unit
+      body.barcode = form.barcode.trim() || null
+      body.min_price = form.min_price ? parseFloat(form.min_price) : null
+      body.unit = form.unit || null
       body.qty = parseInt(form.qty) || 0
-      if (form.weight_per_unit) body.weight_per_unit = parseFloat(form.weight_per_unit)
+      body.weight_per_unit = form.weight_per_unit ? parseFloat(form.weight_per_unit) : null
       body.stock = parseInt(form.stock) || 0
       body.description = form.description.trim() || null
 
