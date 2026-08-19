@@ -168,9 +168,16 @@ Claves i18n nuevas: `tkt_terms`/`tkt_scanToView` (`es`/`en`, `app/lib/i18n.ts`).
 
 `listOrders` usa `SELECT o.*` → `signature` se incluye automáticamente sin cambios extra en el backend.
 
+## Settings — Numeración de facturas (invoice_counter)
+
+Card "Invoice numbering" en `app/settings/_components/SettingsClient.tsx`, visible solo si `getUserInfo().role === 'admin'` (la página en sí no está protegida por rol del lado del cliente — ver nota abajo). Muestra el `invoice_counter` actual (próximo `DocNumber` a asignar en QBO) y permite subirlo con un input + botón, con un modal de confirmación (`InvoiceCounterConfirmModal`, mismo patrón visual que `DeleteModal` de `UsersClient.tsx`) antes de aplicar el cambio — `PUT /api/settings/invoice-counter` (backend valida `next > current`, nunca deja bajar el número). Detalle completo del endpoint en `excellentia/CLAUDE.md`.
+
+**Nota:** `GET /api/settings` no tiene `adminOnly` en el backend — un operador que navegue directo a `/settings` puede ver la página (el link está oculto en el sidebar, pero la ruta no redirige como sí hace `/dashboard`). No es parte de este cambio, pero la card de facturación se oculta explícitamente con el chequeo de rol en cliente por las dudas; el `PUT` en sí ya está protegido por `adminOnly` en el backend.
+
 ---
 
 ## Pendientes / a considerar
 
 - **Aviso de fallo de sync a QBO en `ProductModal.tsx`** — hoy el `PUT /api/products/:id` responde éxito siempre, aunque el push a QBO (`updateItemMeta`/`updateItemQtyOnHand`) haya fallado silenciosamente. El backend va a devolver si ese sync realmente se confirmó contra QBO (parte del fix del bug donde el sync automático de 5 min revertía precios editados recientemente — ver `excellentia/CLAUDE.md`). Falta que el modal lea ese campo y muestre un aviso en vez de cerrar como si todo hubiera salido bien.
 - **Campo `disclaimer` de Settings sin uso real** — ver nota en "Términos y condiciones en el modal Ticket (QR)" más arriba. Decidir si se saca del formulario de Settings o se deja.
+- **`/settings` no redirige a un operador** que entre por URL directa (a diferencia de `/dashboard`, que sí hace `window.location.href = '/orders'` si `role !== 'admin'`) — el backend GET tampoco tiene `adminOnly`. No es grave (solo lee nombre/dirección de la empresa) pero es inconsistente con el resto de páginas admin-only.
