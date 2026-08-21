@@ -17,7 +17,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   const { t } = useLang()
   const isEdit = !!product
 
-  const [form, setForm] = useState({ name: '', short_name: '', price: '', min_price: '', barcode: '', unit: '', qty: '0', weight_per_unit: '', stock: '0', description: '' })
+  const [form, setForm] = useState({ name: '', short_name: '', price: '', min_price: '', barcode: '', sku: '', unit: '', qty: '0', weight_per_unit: '', stock: '0', description: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -35,6 +35,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
         price: product.price.toString(),
         min_price: product.min_price?.toString() ?? '',
         barcode: product.barcode ?? '',
+        sku: product.sku ?? '',
         unit: legacyUnit ?? '',
         qty: product.qty?.toString() ?? '0',
         weight_per_unit: product.weight_per_unit?.toString() ?? '',
@@ -55,7 +56,8 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
     const price = parseFloat(form.price)
     if (!form.price || isNaN(price) || price <= 0) errs.price = t('val_pricePos')
     const stock = parseInt(form.stock)
-    if (isNaN(stock) || stock < 0) errs.stock = t('val_stockNeg')
+    const stockUnchanged = isEdit && form.stock === product!.stock.toString()
+    if ((isNaN(stock) || stock < 0) && !stockUnchanged) errs.stock = t('val_stockNeg')
     if (form.weight_per_unit && (isNaN(parseFloat(form.weight_per_unit)) || parseFloat(form.weight_per_unit) < 0))
       errs.weight_per_unit = t('val_invalidVal')
     setFieldErrors(errs)
@@ -75,6 +77,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
         price: parseFloat(form.price),
       }
       body.barcode = form.barcode.trim() || null
+      body.sku = form.sku.trim() || null
       body.min_price = form.min_price ? parseFloat(form.min_price) : null
       body.unit = form.unit || null
       body.qty = parseInt(form.qty) || 0
@@ -171,16 +174,23 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
               className={inp} placeholder="0" />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_barcode')}</label>
-            <input type="text" value={form.barcode} onChange={e => set('barcode', e.target.value)}
-              className={`${inp} font-mono`} placeholder={t('modal_barcodePh')} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_sku')}</label>
+              <input type="text" value={form.sku} onChange={e => set('sku', e.target.value)}
+                className={`${inp} font-mono`} placeholder={t('modal_skuPh')} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_barcode')}</label>
+              <input type="text" value={form.barcode} onChange={e => set('barcode', e.target.value)}
+                className={`${inp} font-mono`} placeholder={t('modal_barcodePh')} />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_stock')}</label>
-              <input type="number" step="1" min="0" value={form.stock} onChange={e => set('stock', e.target.value)}
+              <input type="number" step="1" value={form.stock} onChange={e => set('stock', e.target.value)}
                 className={fieldErrors.stock ? inpErr : inp} placeholder="0" />
               {fieldErrors.stock && <p className="mt-1 text-xs text-red-600">{fieldErrors.stock}</p>}
             </div>

@@ -37,6 +37,7 @@ export default function ProductsClient() {
       const params = new URLSearchParams()
       params.set('page', String(meta.page))
       params.set('limit', String(meta.limit))
+      params.set('sort', 'sku')
       if (search) params.set('search', search)
 
       const res = await apiFetch(`${API}/api/products?${params}`)
@@ -166,7 +167,7 @@ export default function ProductsClient() {
   }, [meta.page, meta.totalPages])
 
   const thCls = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500'
-  const colSpan = 9 + (isAdmin ? 1 : 0) + (isInvoice ? 2 : 0)
+  const colSpan = 10 + (isAdmin ? 1 : 0) + (isInvoice ? 2 : 0)
 
   if (!ready) return null
 
@@ -282,6 +283,7 @@ export default function ProductsClient() {
             <tr className="border-b border-slate-200 bg-slate-50">
               <th className={thCls}>{t('prod_colProduct')}</th>
               <th className={thCls}>{t('prod_colPrice')}</th>
+              <th className={thCls}>{t('prod_colSku')}</th>
               <th className={thCls}>{t('prod_colBarcode')}</th>
               <th className={thCls}>{t('prod_colMinPrice')}</th>
               <th className={thCls}>{t('prod_colWeight')}</th>

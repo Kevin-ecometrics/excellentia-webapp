@@ -47,22 +47,57 @@ Next.js 16 nombra el middleware `proxy.ts` (exporta `proxy`). No crear `middlewa
 | Precio ($/lb) | `price` | |
 | Precio mínimo | `min_price` | |
 | Peso / lb | `weight_per_unit` | |
-| Código de barras | `barcode` | Al guardar → sync `Sku` a QBO |
+| SKU | `sku` | Al guardar → sync `Sku` a QBO — ver "SKU vs Código de barras" abajo |
+| Código de barras | `barcode` | Puramente interno (escaneo TC22), **nunca** sincroniza con QBO |
 | Categoría | `category` | |
 | Stock | `stock` | Al guardar → sync `QtyOnHand` a QBO (solo ítems Inventory) |
 
-**Vaciar un campo (Código de barras, Precio mínimo, Unit, Peso/lb):** `handleSubmit` manda estos 4 campos siempre en el body (`valor.trim() || null` / `valor || null`), nunca los omite — antes, si dejabas el input vacío y guardabas, la key ni viajaba en el `PUT` y el backend (que solo actualiza columnas presentes con `!== undefined`) dejaba el valor viejo intacto en MySQL. Bug corregido a nivel frontend únicamente, el backend ya manejaba `null` bien.
+**Vaciar un campo (SKU, Código de barras, Precio mínimo, Unit, Peso/lb):** `handleSubmit` manda estos campos siempre en el body (`valor.trim() || null` / `valor || null`), nunca los omite — antes, si dejabas el input vacío y guardabas, la key ni viajaba en el `PUT` y el backend (que solo actualiza columnas presentes con `!== undefined`) dejaba el valor viejo intacto en MySQL. Bug corregido a nivel frontend únicamente, el backend ya manejaba `null` bien.
+
+### SKU vs Código de barras (Fase 105, backend `excellentia/CLAUDE.md`)
+
+Hasta la Fase 105, el campo "Código de barras" del modal hacía las dos cosas a la
+vez: identificaba el producto físico (escaneo TC22) Y era lo que se sincronizaba
+como `Sku` en QBO. Se separaron porque el objeto `Item` de la API de QBO **no
+tiene un campo de barcode nativo** — solo expone `Sku` — así que forzar el
+barcode físico ahí siempre iba a quedar atado a ese único campo. Ahora:
+
+- **SKU** (campo nuevo) es la contraparte real de `Item.Sku` en QBO — es lo que
+  sincroniza al guardar.
+- **Código de barras** quedó puramente interno — nunca viaja hacia ni desde QBO,
+  solo lo usa la app Android para escanear.
+
+Migración de datos: `sku` se hizo backfill una sola vez copiando el `barcode`
+que ya existía (esos valores eran, de hecho, el SKU histórico de QBO). Un mismo
+producto puede mostrar el mismo valor en ambos campos hoy — es esperable, no un
+bug — hasta que se les asigne la nomenclatura nueva (ver más abajo).
+
+### Migración a la nomenclatura NEW_SKU (agosto 2026)
+
+Se generó un master sheet comparando el export de productos de QBO
+(`ProductServiceList__QBO.xls`) contra la lista de precios PDF de Excellentia,
+para detectar qué productos faltaban de un lado u otro y asignarles un SKU nuevo
+con formato `MARCA + secuencia de 3 dígitos` (ej. `REY001` = Reynaldo's, primer
+producto; `TIO014` = Tío Francisco). La migración se aplicó vía un endpoint
+admin-only en el backend (`POST /api/products/migrate-sku`, paginado y con
+dry-run — detalle completo en `excellentia/CLAUDE.md`), **no** desde la webapp —
+no hay botón para esto acá, fue una operación de una sola vez. Cerrada en agosto
+de 2026 (Fase 107 backend): la re-corrida final corrigió las asignaciones que un
+defecto de barcodes duplicados del master sheet había pisado, y los items Service
+quedaron ocultos con `hidden=1`.
 
 ### Validaciones del modal
 
 - Nombre: mínimo 2 caracteres (inline, borde rojo)
 - Precio: mayor a 0 (inline)
-- Stock: no negativo (inline)
+- Stock: no negativo **solo si el valor cambió** respecto al producto cargado (inline) — un stock negativo ya existente en la DB es estado real del producto (sobre-venta/ajuste), no un typo; bloquearlo impedía editar cualquier otro campo (ej. SKU) de esos productos
 - Peso: no negativo si se ingresa (inline)
+
+Nota: el input de stock no tiene `min="0"` a propósito — la validación nativa del navegador (el form no usa `noValidate`) bloquearía el submit antes de llegar al handler de React con el mismo falso positivo.
 
 ### Columnas visibles en la tabla (read-only)
 
-Nombre + descripción (gris, truncada) · Precio/lb · Barcode · Precio min · Peso · Stock (rojo=0, ámbar≤5, normal) · QB badge · Botón editar (admin)
+Nombre + descripción (gris, truncada) · Precio/lb · SKU · Barcode · Precio min · Peso · Stock (rojo=0, ámbar≤5, normal) · QB badge · Botón editar (admin)
 
 ### QB badge — 3 estados
 
@@ -92,7 +127,7 @@ Siempre usar `window.location.href = '/api/logout'` (nunca `router.push`). El la
 ## Backend esperado
 
 - `GET /api/products?limit=500` — lista productos
-- `PUT /api/products/:id` — actualiza campos; si `name`/`description`/`barcode` cambian → `updateItemMeta` a QBO; si `stock` cambia → `updateItemQtyOnHand` a QBO (solo Inventory). Ambos syncs son silenciosos.
+- `PUT /api/products/:id` — actualiza campos; si `name`/`description`/`sku` cambian → `updateItemMeta` a QBO (`barcode` nunca dispara sync, es puramente interno); si `stock` cambia → `updateItemQtyOnHand` a QBO (solo Inventory). Ambos syncs son silenciosos.
 - `POST /api/qb/sync-products` — QBO Items → MySQL (requiere admin)
 - `POST /api/auth/login` — devuelve `{ token }`
 

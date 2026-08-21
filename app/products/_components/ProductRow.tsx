@@ -61,6 +61,9 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
       </td>
       <td className="px-4 py-3 font-medium text-zinc-900">${Number(product.price).toFixed(2)}</td>
       <td className="px-4 py-3 font-mono text-sm text-slate-600">
+        {product.sku ?? <span className="text-slate-400 italic">{t('prod_noSku')}</span>}
+      </td>
+      <td className="px-4 py-3 font-mono text-sm text-slate-600">
         {product.barcode ?? <span className="text-slate-400 italic">{t('prod_noBarcode')}</span>}
       </td>
       <td className="px-4 py-3 text-zinc-700">
