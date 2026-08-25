@@ -24,6 +24,8 @@ export interface OrderRow {
   check_number: string | null
   credit_applied: number | null
   damage_credits: number | null
+  unit: string | null
+  case_qty: number | null
   created_at: string
 }
 

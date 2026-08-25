@@ -57,6 +57,106 @@ function formatDamageQty(qty: number, unit: string | null | undefined): string {
   return isLbsUnit(unit) ? `${q.toFixed(2)} lb` : `${Math.round(q)} unit(s)`
 }
 
+// ── Ticket: agrupación por categoría de unidad (LBS / CASE-UNIT / BUCKET) ──
+// Espeja ticketCategoryFor()/isCaseUnitType()/groupedForTicket()/byTicketCategory()
+// de la app Android (data/Models.kt) y TicketDetailActivity.buildReceipt() — misma
+// lógica en las dos para que el ticket de la webapp coincida con el que ve/imprime
+// el vendedor en el TC22. "Case"/"Unit" viejos se siguen aceptando como el mismo
+// tipo fusionado "Case/Unit" (datos históricos no migrados).
+function isCaseUnitType(unit: string | null | undefined): boolean {
+  return unit === 'Case/Unit' || unit === 'Case' || unit === 'Unit'
+}
+
+function ticketCategoryFor(unit: string | null | undefined): string {
+  if (!unit || unit === 'Lbs') return 'LBS'
+  if (isCaseUnitType(unit)) return 'CASE/UNIT'
+  return unit.toUpperCase()
+}
+
+function isWeightTicketCategory(category: string): boolean {
+  return category === 'LBS'
+}
+
+// Indicador corto de unidad para la columna Qty/W (comparte fila con rate/total).
+function shortQtyUnit(category: string): string {
+  if (category === 'CASE/UNIT') return 'cs/unt'
+  if (category === 'BUCKET') return 'bkt'
+  return category.slice(0, 3).toLowerCase()
+}
+
+// Nombre completo de unidad — usado en la línea de total al pie del ticket.
+function unitLabel(unit: string | null | undefined): string {
+  if (!unit || unit === 'Lbs') return 'lb'
+  if (isCaseUnitType(unit)) return 'Case/Unit'
+  return unit
+}
+
+interface GroupedTicketItem {
+  barcode: string
+  productName: string
+  quantity: number
+  total: number
+  unit: string | null
+  caseQty: number | null
+  count: number
+}
+
+// Consolida líneas repetidas del mismo producto (mismo barcode) dentro de un
+// batch — un producto escaneado/pesado varias veces aparece como una sola fila.
+function groupedForTicket(orders: OrderRow[]): GroupedTicketItem[] {
+  const map = new Map<string, GroupedTicketItem>()
+  for (const o of orders) {
+    const key = o.barcode || o.product_name
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, {
+        barcode: o.barcode,
+        productName: o.product_name,
+        quantity: Number(o.quantity),
+        total: Number(o.total),
+        unit: o.unit ?? null,
+        caseQty: o.case_qty ?? null,
+        count: 1,
+      })
+    } else {
+      existing.quantity += Number(o.quantity)
+      existing.total += Number(o.total)
+      existing.count += 1
+    }
+  }
+  return Array.from(map.values())
+}
+
+const TICKET_CATEGORY_ORDER = ['LBS', 'CASE/UNIT', 'BUCKET']
+
+// Agrupa preservando el orden LBS → CASE/UNIT → BUCKET → otras (alfabético).
+function byTicketCategory(items: GroupedTicketItem[]): [string, GroupedTicketItem[]][] {
+  const groups = new Map<string, GroupedTicketItem[]>()
+  for (const item of items) {
+    const cat = ticketCategoryFor(item.unit)
+    if (!groups.has(cat)) groups.set(cat, [])
+    groups.get(cat)!.push(item)
+  }
+  const orderedKeys = [
+    ...TICKET_CATEGORY_ORDER.filter(k => groups.has(k)),
+    ...Array.from(groups.keys()).filter(k => !TICKET_CATEGORY_ORDER.includes(k)).sort(),
+  ]
+  return orderedKeys.map(k => [k, groups.get(k)!] as [string, GroupedTicketItem[]])
+}
+
+// Cantidad mostrada para una línea de orden cruda (sin agrupar) — usada en la
+// tabla principal de /orders (fila expandible). Case/Unit multiplica por
+// unidades por caja (case_qty), igual que en el ticket agrupado.
+function formatOrderQty(o: OrderRow): string {
+  const category = ticketCategoryFor(o.unit)
+  const qty = Number(o.quantity)
+  if (isWeightTicketCategory(category)) return `${qty.toFixed(2)} lb`
+  const displayQty = category === 'CASE/UNIT'
+    ? qty * (o.case_qty && o.case_qty > 0 ? o.case_qty : 1)
+    : qty
+  return `${Math.round(displayQty)} ${shortQtyUnit(category)}`
+}
+
 const statusCls: Record<string, string> = {
   SENT:      'bg-green-100 text-green-700',
   PENDING:   'bg-amber-100 text-amber-700',
@@ -302,15 +402,39 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               <p>{t('tkt_payment')} {ticketBatch.paymentMethod === 'Check' && ticketBatch.checkNumber ? `Check #${ticketBatch.checkNumber}` : ticketBatch.paymentMethod}</p>
             )}
 
-            {/* Items */}
+            {/* Items — agrupados por producto y por categoría de unidad
+                (LBS / CASE-UNIT / BUCKET), misma lógica que el ticket de la
+                app Android (TicketDetailActivity.buildReceipt) */}
             <p>================================</p>
-            {ticketBatch.orders.map(o => (
-              <div key={o.id} className="mb-2">
-                <p className="font-semibold">{o.product_name}</p>
-                <div className="flex justify-between">
-                  <span>{Number(o.quantity).toFixed(2)} lb x ${Number(o.price).toFixed(2)}/lb</span>
-                  <span className="font-semibold">${Number(o.total).toFixed(2)}</span>
-                </div>
+            <p className="font-bold">Desc</p>
+            <div className="flex justify-between font-bold">
+              <span>Qty/W</span><span>Rate</span><span>Total</span>
+            </div>
+            {byTicketCategory(groupedForTicket(ticketBatch.orders)).map(([category, items]) => (
+              <div key={category}>
+                <p className="mt-1">--------------------------------</p>
+                <p className="font-bold">{category}</p>
+                <p>--------------------------------</p>
+                {items.map(g => {
+                  const displayQty = category === 'CASE/UNIT'
+                    ? g.quantity * (g.caseQty && g.caseQty > 0 ? g.caseQty : 1)
+                    : g.quantity
+                  const avgPrice = displayQty !== 0 ? g.total / displayQty : 0
+                  const pickCount = isWeightTicketCategory(category) ? g.count : Math.round(g.quantity)
+                  const qtyStr = isWeightTicketCategory(category)
+                    ? `${displayQty.toFixed(2)} lb`
+                    : `${Math.round(displayQty)} ${shortQtyUnit(category)}`
+                  return (
+                    <div key={g.barcode} className="mb-2">
+                      <p className="font-semibold">{pickCount} - {g.productName}</p>
+                      <div className="flex justify-between">
+                        <span>{qtyStr}</span>
+                        <span>${avgPrice.toFixed(2)}</span>
+                        <span className="font-semibold">${g.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ))}
 
@@ -360,7 +484,18 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                 </>
               )
             })()}
-            <p>{ticketBatch.orders.reduce((s,o) => s + Number(o.quantity), 0).toFixed(2)} {t('tkt_lbTotal')}</p>
+            {(() => {
+              const grouped = byTicketCategory(groupedForTicket(ticketBatch.orders))
+              const totalQty = ticketBatch.orders.reduce((s, o) => s + Number(o.quantity), 0)
+              if (grouped.length <= 1) {
+                const category = grouped[0]?.[0] ?? 'LBS'
+                const overallUnit = unitLabel(ticketBatch.orders[0]?.unit)
+                return isWeightTicketCategory(category)
+                  ? <p>{totalQty.toFixed(2)} {overallUnit} total</p>
+                  : <p>{Math.round(totalQty)} {overallUnit} total</p>
+              }
+              return <p>{groupedForTicket(ticketBatch.orders).length} {t('ord_items')} total</p>
+            })()}
             <p>{company.company_name}</p>
 
             {/* Terms and conditions — QR, mismo formato que el ticket físico (PrintService.kt) */}
@@ -635,7 +770,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Product</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Barcode</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Quantity</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Price/lb</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Price</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Total</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Status</th>
                               </tr>
@@ -647,7 +782,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                                   <tr key={o.id} className="hover:bg-slate-50">
                                     <td className="px-3 py-2 font-medium text-zinc-800">{o.product_name}</td>
                                     <td className="px-3 py-2 font-mono text-slate-500">{o.barcode}</td>
-                                    <td className="px-3 py-2 text-slate-600">{Number(o.quantity).toFixed(2)} lb</td>
+                                    <td className="px-3 py-2 text-slate-600">{formatOrderQty(o)}</td>
                                     <td className="px-3 py-2 text-slate-600">{fmt(o.price)}</td>
                                     <td className="px-3 py-2 font-semibold text-zinc-900">{fmt(Number(o.total))}</td>
                                     <td className="px-3 py-2">
