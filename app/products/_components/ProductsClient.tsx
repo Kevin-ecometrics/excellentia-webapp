@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import type { Product } from '../page'
 import ProductRow from './ProductRow'
 import ProductModal from './ProductModal'
+import PricingInfoModal from './PricingInfoModal'
 import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 
@@ -26,6 +27,7 @@ export default function ProductsClient() {
   const [isInvoice, setIsInvoice] = useState(false)
   const [qtyMap, setQtyMap] = useState<Record<number, number>>({})
   const [rateMap, setRateMap] = useState<Record<number, number>>({})
+  const [showPricingInfo, setShowPricingInfo] = useState(false)
 
   useEffect(() => {
     const user = getUserInfo()
@@ -93,12 +95,15 @@ export default function ProductsClient() {
     if (isInvoice) {
       setIsInvoice(false)
     } else {
+      // Qty arranca en 0 (carrito vacío) — antes se pre-llenaba con
+      // p.qty (unidades por caja de Case/Unit, un atributo del catálogo,
+      // no una cantidad a facturar) y eso hacía que TODOS los productos
+      // entraran como ítems de la factura apenas se activaba el modo,
+      // sin que el usuario hubiera elegido nada todavía. Price sí arranca
+      // en el precio del catálogo (por caja/lb/bucket según el producto)
+      // como punto de partida editable por línea de factura.
       setQtyMap({})
-      setRateMap({})
-      for (const p of products) {
-        setQtyMap(prev => ({ ...prev, [p.id]: p.qty || 1 }))
-        setRateMap(prev => ({ ...prev, [p.id]: p.price }))
-      }
+      setRateMap(Object.fromEntries(products.map(p => [p.id, p.price])))
       setIsInvoice(true)
     }
   }
@@ -167,7 +172,7 @@ export default function ProductsClient() {
   }, [meta.page, meta.totalPages])
 
   const thCls = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500'
-  const colSpan = 10 + (isAdmin ? 1 : 0) + (isInvoice ? 2 : 0)
+  const colSpan = 10 + (isAdmin ? 1 : 0) + (isInvoice ? 1 : 0)
 
   if (!ready) return null
 
@@ -251,8 +256,8 @@ export default function ProductsClient() {
       </div>
 
       {/* Search */}
-      <div className="mb-4">
-        <div className="relative max-w-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative max-w-sm flex-1">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -264,7 +269,21 @@ export default function ProductsClient() {
             className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-4 text-sm shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
         </div>
+        <button
+          onClick={() => setShowPricingInfo(true)}
+          title={t('prod_infoBtn')}
+          aria-label={t('prod_infoBtn')}
+          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-primary"
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+        </button>
       </div>
+
+      {showPricingInfo && <PricingInfoModal onClose={() => setShowPricingInfo(false)} />}
 
       {/* Invoice mode indicator */}
       {isInvoice && (
@@ -289,7 +308,6 @@ export default function ProductsClient() {
               <th className={thCls}>{t('prod_colWeight')}</th>
               <th className={thCls}>{t('prod_colUnit')}</th>
               <th className={thCls}>{t('prod_colQty')}</th>
-              {isInvoice && <th className={thCls}>{t('prod_colRate')}</th>}
               {isInvoice && <th className={thCls}>{t('prod_colAmount')}</th>}
               <th className={thCls}>{t('prod_colStock')}</th>
               <th className={thCls}>{t('prod_colQb')}</th>
@@ -300,7 +318,7 @@ export default function ProductsClient() {
             {products.map(p => (
               <ProductRow key={p.id} product={p} isAdmin={isAdmin} onEdit={setEditProduct}
                 isInvoice={isInvoice}
-                qty={qtyMap[p.id] ?? (isInvoice ? (p.qty || 1) : 0)}
+                qty={qtyMap[p.id] ?? 0}
                 rate={rateMap[p.id] ?? p.price}
                 onQtyChange={handleQtyChange}
                 onRateChange={handleRateChange} />

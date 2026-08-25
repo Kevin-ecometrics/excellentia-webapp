@@ -48,6 +48,19 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
 
   const qtyStep = product.unit === 'Lbs' ? '0.01' : '1'
 
+  // Mismo desglose que muestra la app Android para Case/Unit
+  // (ProductDetailActivity.showProduct()/recalcTotal(): "$X.XX / Case/Unit of
+  // N ($Y.YY/unit)" y "N packs × cq = totalUnits units") — evita que Qty (acá,
+  // cajas a facturar) se confunda con el tamaño de la caja (product.qty).
+  const isCaseUnit = product.unit === 'Case' || product.unit === 'Unit' || product.unit === 'Case/Unit'
+  const isBucket = product.unit === 'Bucket'
+  // Bucket usa el mismo campo product.qty que Case/Unit para "unidades por
+  // bucket" — a diferencia de Case/Unit, el backend (creditCalculator.ts) no
+  // lo usa para dividir el precio (Bucket cobra el price completo tal cual),
+  // así que acá es puramente informativo, no entra en ningún cálculo de $.
+  const hasContainer = isCaseUnit || isBucket
+  const caseSize = product.qty && product.qty > 0 ? product.qty : null
+
   return (
     <tr className="hover:bg-slate-50 transition-colors">
       <td className="px-4 py-3">
@@ -59,7 +72,20 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
           <p className="mt-0.5 text-[11px] text-slate-400 truncate max-w-[200px]">{product.description}</p>
         )}
       </td>
-      <td className="px-4 py-3 font-medium text-zinc-900">${Number(product.price).toFixed(2)}</td>
+      <td className="px-4 py-3 font-medium text-zinc-900">
+        {isInvoice ? (
+          <div>
+            <input type="number" step="0.01" min="0" value={rate}
+              onChange={e => onRateChange?.(product.id, parseFloat(e.target.value) || 0)}
+              className="w-24 rounded border border-slate-300 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
+            {isCaseUnit && caseSize && (
+              <p className="mt-0.5 text-[10px] font-normal text-slate-400">${(rate / caseSize).toFixed(2)}{t('prod_perUnit')}</p>
+            )}
+          </div>
+        ) : (
+          `$${Number(product.price).toFixed(2)}`
+        )}
+      </td>
       <td className="px-4 py-3 font-mono text-sm text-slate-600">
         {product.sku ?? <span className="text-slate-400 italic">{t('prod_noSku')}</span>}
       </td>
@@ -76,23 +102,28 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
         {product.unit === 'Case' || product.unit === 'Unit'
           ? 'Case/Unit'
           : (product.unit ?? <span className="text-slate-400">—</span>)}
+        {isInvoice && hasContainer && caseSize && (
+          <p className="mt-0.5 font-normal text-slate-400">
+            {t(isBucket ? 'prod_containerBucket' : 'prod_containerCase').replace('{n}', String(caseSize))}
+          </p>
+        )}
       </td>
       <td className="px-4 py-3 text-zinc-700">
         {isInvoice ? (
-          <input type="number" step={qtyStep} min="0" value={qty}
-            onChange={e => onQtyChange?.(product.id, parseFloat(e.target.value) || 0)}
-            className="w-20 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
+          <div>
+            <input type="number" step={qtyStep} min="0" value={qty}
+              onChange={e => onQtyChange?.(product.id, parseFloat(e.target.value) || 0)}
+              className="w-20 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
+            {hasContainer && caseSize && qty > 0 && (
+              <p className="mt-0.5 text-[10px] text-slate-400 text-center">
+                {qty} × {caseSize} = {qty * caseSize} {t('prod_units')}
+              </p>
+            )}
+          </div>
         ) : (
           <span className="font-medium text-zinc-900">{product.qty}</span>
         )}
       </td>
-      {isInvoice && (
-        <td className="px-4 py-3">
-          <input type="number" step="0.01" min="0" value={rate}
-            onChange={e => onRateChange?.(product.id, parseFloat(e.target.value) || 0)}
-            className="w-24 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-primary focus:outline-none focus:ring-1 focus:ring-blue-100" />
-        </td>
-      )}
       {isInvoice && (
         <td className="px-4 py-3 font-semibold text-zinc-900">
           ${(qty * rate).toFixed(2)}

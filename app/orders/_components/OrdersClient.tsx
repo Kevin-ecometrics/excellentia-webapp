@@ -144,6 +144,16 @@ function byTicketCategory(items: GroupedTicketItem[]): [string, GroupedTicketIte
   return orderedKeys.map(k => [k, groups.get(k)!] as [string, GroupedTicketItem[]])
 }
 
+// Etiqueta de unidad para el badge de la tabla principal — a diferencia de
+// unitLabel() (usada en el pie del ticket, "lb" en minúscula para que quede
+// bien en una frase), acá va con mayúscula inicial para que combine con
+// "Case/Unit"/"Bucket" como texto de badge independiente.
+function orderUnitLabel(unit: string | null | undefined): string {
+  if (!unit || unit === 'Lbs') return 'Lbs'
+  if (isCaseUnitType(unit)) return 'Case/Unit'
+  return unit
+}
+
 // Cantidad mostrada para una línea de orden cruda (sin agrupar) — usada en la
 // tabla principal de /orders (fila expandible). Case/Unit multiplica por
 // unidades por caja (case_qty), igual que en el ticket agrupado.
@@ -769,6 +779,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                               <tr className="border-b border-slate-100 bg-slate-50">
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Product</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Barcode</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Unit</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Quantity</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Price</th>
                                 <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Total</th>
@@ -782,6 +793,11 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                                   <tr key={o.id} className="hover:bg-slate-50">
                                     <td className="px-3 py-2 font-medium text-zinc-800">{o.product_name}</td>
                                     <td className="px-3 py-2 font-mono text-slate-500">{o.barcode}</td>
+                                    <td className="px-3 py-2 text-slate-600">
+                                      <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                        {orderUnitLabel(o.unit)}
+                                      </span>
+                                    </td>
                                     <td className="px-3 py-2 text-slate-600">{formatOrderQty(o)}</td>
                                     <td className="px-3 py-2 text-slate-600">{fmt(o.price)}</td>
                                     <td className="px-3 py-2 font-semibold text-zinc-900">{fmt(Number(o.total))}</td>
