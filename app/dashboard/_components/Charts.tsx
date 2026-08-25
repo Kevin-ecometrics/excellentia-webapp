@@ -21,9 +21,9 @@ export function BarChart({ data }: { data: HourBar[] }) {
         const y = padT + innerH - barH
         return (
           <g key={i}>
-            <rect x={x} y={y} width={bw} height={barH} fill="#1565C0" rx="2" opacity={d.count === 0 ? 0.15 : 0.85} />
+            <rect x={x} y={y} width={bw} height={barH} fill="#023334" rx="2" opacity={d.count === 0 ? 0.15 : 0.85} />
             {i % 4 === 0 && (
-              <text x={x + bw / 2} y={H - 4} textAnchor="middle" fontSize="8" fill="#94a3b8">
+              <text x={x + bw / 2} y={H - 4} textAnchor="middle" fontSize="8" fill="#A99D95">
                 {d.hour}h
               </text>
             )}
@@ -49,7 +49,7 @@ export function LineChart({ data }: { data: DayLine[] }) {
 
   if (n === 0) return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-      <text x={W / 2} y={H / 2} textAnchor="middle" fontSize="11" fill="#94a3b8">{t('dash_noChartData')}</text>
+      <text x={W / 2} y={H / 2} textAnchor="middle" fontSize="11" fill="#A99D95">{t('dash_noChartData')}</text>
     </svg>
   )
 
@@ -61,17 +61,17 @@ export function LineChart({ data }: { data: DayLine[] }) {
       {/* Grid lines */}
       {[0, 0.25, 0.5, 0.75, 1].map(t => (
         <line key={t} x1={padL} x2={W - padR} y1={padT + innerH * (1 - t)} y2={padT + innerH * (1 - t)}
-          stroke="#e2e8f0" strokeWidth="1" />
+          stroke="#E4D8D0" strokeWidth="1" />
       ))}
       {/* Lines */}
-      <path d={pathFor('sent')} fill="none" stroke="#2E7D32" strokeWidth="2" strokeLinejoin="round" />
-      <path d={pathFor('failed')} fill="none" stroke="#C62828" strokeWidth="2" strokeLinejoin="round" />
+      <path d={pathFor('sent')} fill="none" stroke="#0E5A4A" strokeWidth="2" strokeLinejoin="round" />
+      <path d={pathFor('failed')} fill="none" stroke="#B3271B" strokeWidth="2" strokeLinejoin="round" />
       {/* Dots */}
       {data.map((d, i) => (
         <g key={i}>
-          <circle cx={px(i)} cy={py(d.sent)} r="3" fill="#2E7D32" />
-          {d.failed > 0 && <circle cx={px(i)} cy={py(d.failed)} r="3" fill="#C62828" />}
-          <text x={px(i)} y={H - 4} textAnchor="middle" fontSize="8" fill="#94a3b8">
+          <circle cx={px(i)} cy={py(d.sent)} r="3" fill="#0E5A4A" />
+          {d.failed > 0 && <circle cx={px(i)} cy={py(d.failed)} r="3" fill="#B3271B" />}
+          <text x={px(i)} y={H - 4} textAnchor="middle" fontSize="8" fill="#A99D95">
             {d.day}
           </text>
         </g>

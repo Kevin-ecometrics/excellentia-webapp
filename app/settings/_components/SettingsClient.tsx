@@ -39,46 +39,46 @@ function InvoiceCounterConfirmModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[rgba(0,51,50,.5)]"
         onClick={!saving ? onCancel : undefined}
       />
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-start gap-4 rounded-t-2xl bg-amber-50 px-6 py-5 border-b border-amber-100">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="relative w-full max-w-md rounded-lg bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-4 rounded-t-lg bg-[var(--ec-warn-bg)] px-6 py-5 border-b border-[var(--ec-warn-border)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ec-gold)]/20">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ec-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </div>
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">{t('cfg_invoiceConfirmTitle')}</h2>
-            <p className="mt-0.5 text-sm text-slate-500">{t('cfg_invoiceConfirmBody')}</p>
+            <h2 className="text-base font-bold text-[var(--ec-ink)]">{t('cfg_invoiceConfirmTitle')}</h2>
+            <p className="mt-0.5 text-sm text-[var(--ec-muted)]">{t('cfg_invoiceConfirmBody')}</p>
           </div>
         </div>
         <div className="px-6 py-5">
-          <div className="flex items-center justify-center gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="flex items-center justify-center gap-4 rounded-md border border-[var(--ec-border)] bg-[var(--ec-surface-alt)] px-4 py-4">
             <div className="text-center">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{t('cfg_invoiceCurrent')}</p>
-              <p className="text-lg font-bold text-slate-400 line-through tabular-nums">#{current}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--ec-faint)]">{t('cfg_invoiceCurrent')}</p>
+              <p className="text-lg font-bold text-[var(--ec-faint)] line-through tabular-nums">#{current}</p>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ec-faint)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
             </svg>
             <div className="text-center">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-amber-600">{t('cfg_invoiceNewLabel')}</p>
-              <p className="text-lg font-bold text-amber-700 tabular-nums">#{next}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--ec-warn-ink)]">{t('cfg_invoiceNewLabel')}</p>
+              <p className="text-lg font-bold text-[var(--ec-warn-ink)] tabular-nums">#{next}</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 rounded-b-lg border-t border-[var(--ec-border)] bg-[var(--ec-surface-alt)] px-6 py-4">
           <button onClick={onCancel} disabled={saving}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-50">
+            className="rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition disabled:opacity-50">
             {t('cfg_invoiceConfirmCancel')}
           </button>
           <button onClick={onConfirm} disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 active:scale-[0.98] transition disabled:opacity-60">
+            className="flex items-center gap-2 rounded bg-[var(--ec-gold)] px-4 py-2.5 text-sm font-extrabold text-primary hover:brightness-95 active:scale-[0.98] transition disabled:opacity-60">
             {saving ? (
               <>
                 <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -199,32 +199,32 @@ export default function SettingsClient({ settings, fetchError }: Props) {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">{t('cfg_title')}</h1>
-        <p className="mt-0.5 text-sm text-slate-500">{t('cfg_subtitle')}</p>
+        <h1 className="text-[26px] sm:text-[31px] font-extrabold tracking-[-.028em] text-[var(--ec-ink)]">{t('cfg_title')}</h1>
+        <p className="mt-1.5 text-sm text-[var(--ec-muted)]">{t('cfg_subtitle')}</p>
       </div>
 
       {msg && (
-        <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
           {msg.text}
         </div>
       )}
       {fetchError && (
-        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{fetchError}</div>
+        <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">{fetchError}</div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
 
         {/* Form */}
-        <form onSubmit={handleSave} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_formTitle')}</p>
+        <form onSubmit={handleSave} className="rounded-md border border-[var(--ec-border)] bg-white p-6">
+          <p className="mb-5 text-[15px] font-extrabold text-[var(--ec-ink)]">{t('cfg_formTitle')}</p>
 
           <div className="space-y-4">
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-600">
-                  {t('cfg_companyName')} <span className="text-red-400">*</span>
+                <label className="text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">
+                  {t('cfg_companyName')} <span className="text-[var(--ec-danger)]">*</span>
                 </label>
-                <span className={`text-[10px] font-medium tabular-nums ${companyName.length > 33 ? 'text-red-500' : 'text-slate-400'}`}>
+                <span className={`font-mono text-[10.5px] font-medium tabular-nums ${companyName.length > 33 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]'}`}>
                   {companyName.length}/33
                 </span>
               </div>
@@ -232,15 +232,15 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                 onChange={e => setCompanyName(e.target.value)}
                 placeholder="EXCELLENTIA"
                 maxLength={50}
-                className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${companyName.length > 33 ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+                className={`w-full rounded border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${companyName.length > 33 ? 'border-[var(--ec-gold)]/50 bg-[var(--ec-warn-bg)] focus:border-[var(--ec-gold)] focus:ring-[var(--ec-gold)]/20' : 'border-[var(--ec-border-strong)] bg-white focus:border-primary focus:ring-primary-50'}`}
               />
-              <p className="mt-1 text-xs text-slate-400">{t('cfg_companyHint')}</p>
+              <p className="mt-1.5 text-xs text-[var(--ec-faint)]">{t('cfg_companyHint')}</p>
             </div>
 
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-600">{t('cfg_ticketSub')}</label>
-                <span className={`text-[10px] font-medium tabular-nums ${subtitle.length > 33 ? 'text-red-500' : 'text-slate-400'}`}>
+                <label className="text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_ticketSub')}</label>
+                <span className={`font-mono text-[10.5px] font-medium tabular-nums ${subtitle.length > 33 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]'}`}>
                   {subtitle.length}/33
                 </span>
               </div>
@@ -248,53 +248,53 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                 onChange={e => setSubtitle(e.target.value)}
                 placeholder="Sale Ticket"
                 maxLength={50}
-                className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${subtitle.length > 33 ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+                className={`w-full rounded border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${subtitle.length > 33 ? 'border-[var(--ec-gold)]/50 bg-[var(--ec-warn-bg)] focus:border-[var(--ec-gold)] focus:ring-[var(--ec-gold)]/20' : 'border-[var(--ec-border-strong)] bg-white focus:border-primary focus:ring-primary-50'}`}
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_address')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_address')}</label>
               <input type="text" value={address}
                 onChange={e => setAddress(e.target.value)}
                 placeholder="123 Main Street"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_city')}</label>
+                <label className="mb-1.5 block text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_city')}</label>
                 <input type="text" value={city}
                   onChange={e => setCity(e.target.value)}
                   placeholder="New York, NY"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_phone')}</label>
+                <label className="mb-1.5 block text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_phone')}</label>
                 <input type="tel" value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="+1 555 123 4567"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
               </div>
             </div>
 
             <div className="mt-4">
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Disclaimer / Legal Terms</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">Disclaimer / Legal Terms</label>
               <textarea value={disclaimer}
                 onChange={e => setDisclaimer(e.target.value)}
                 placeholder="I hereby acknowledge that all above referenced goods have been received..."
                 rows={4}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100 resize-y"
+                className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50 resize-y"
               />
-              <p className="mt-1 text-xs text-slate-400">Shown on printed tickets and receipts. Leave empty to omit.</p>
+              <p className="mt-1.5 text-xs text-[var(--ec-faint)]">Shown on printed tickets and receipts. Leave empty to omit.</p>
             </div>
           </div>
 
           <div className="mt-6 flex justify-end">
             <button type="submit" disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-60">
+              className="flex items-center gap-2 rounded bg-primary px-5 py-2.5 text-sm font-extrabold text-white hover:bg-primary-dark active:scale-[0.98] transition disabled:opacity-60">
               {saving ? (
                 <>
                   <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -317,72 +317,74 @@ export default function SettingsClient({ settings, fetchError }: Props) {
         </form>
 
         {/* Ticket preview */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="mb-5 text-sm font-semibold text-zinc-900">{t('cfg_previewTitle')}</p>
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 font-mono text-xs">
+        <div className="rounded-md border border-[var(--ec-border)] bg-white p-6">
+          <p className="mb-5 text-[15px] font-extrabold text-[var(--ec-ink)]">{t('cfg_previewTitle')}</p>
+          <div className="rounded border border-[var(--ec-border)] bg-[#f9efe8] p-[22px] font-mono text-[11.5px] leading-[1.75] text-[#2B241F]">
             <p className="text-center text-sm font-bold tracking-widest">{companyName || 'EMPRESA'}</p>
-            <p className="text-center text-slate-500">{subtitle || 'Sale Ticket'}</p>
-            {city && <p className="text-center text-slate-400">{city}</p>}
-            {address && <p className="text-center text-slate-400">{address}</p>}
-            {phone && <p className="text-center text-slate-400">{phone}</p>}
-            <div className="my-3 border-t border-dashed border-slate-300" />
-            <p className="text-center text-slate-400">dd/MM/yyyy HH:mm</p>
+            <p className="text-center text-[var(--ec-muted)]">{subtitle || 'Sale Ticket'}</p>
+            {city && <p className="text-center text-[var(--ec-faint)]">{city}</p>}
+            {address && <p className="text-center text-[var(--ec-faint)]">{address}</p>}
+            {phone && <p className="text-center text-[var(--ec-faint)]">{phone}</p>}
+            <div className="my-3.5 border-t border-dashed border-[var(--ec-border-strong)]" />
+            <p className="text-center text-[var(--ec-faint)]">dd/MM/yyyy HH:mm</p>
             <p className="text-center">Order #XXXXXXXX</p>
             <p className="text-center">Customer: John Doe</p>
-            <div className="my-3 border-t border-dashed border-slate-300" />
+            <div className="my-3.5 border-t border-dashed border-[var(--ec-border-strong)]" />
             <div className="mb-1">
               <p className="font-semibold">Sample Product</p>
-              <p className="text-slate-500">123456 · $30.00/lb</p>
+              <p className="text-[var(--ec-muted)]">123456 · $30.00/lb</p>
               <p className="flex justify-between"><span>1.50 lb</span><span>$45.00</span></p>
             </div>
-            <div className="my-3 border-t border-dashed border-slate-300" />
+            <div className="my-3.5 border-t border-dashed border-[var(--ec-border-strong)]" />
             <p className="text-center font-bold">TOTAL</p>
             <p className="text-center text-lg font-bold">$45.00</p>
-            <p className="text-center text-slate-400 mt-1">1.50 lb total</p>
-            <p className="text-center text-slate-400 mt-3">{companyName || 'EMPRESA'}</p>
+            <p className="text-center text-[var(--ec-muted)] mt-1">1.50 lb total</p>
+            <p className="text-center text-[var(--ec-faint)] mt-3">{companyName || 'EMPRESA'}</p>
             {disclaimer && (
               <>
-                <div className="my-3 border-t border-dashed border-slate-300" />
-                <p className="text-[10px] leading-4 text-slate-500">{disclaimer}</p>
+                <div className="my-3.5 border-t border-dashed border-[var(--ec-border-strong)]" />
+                <p className="text-[10px] leading-4 text-[var(--ec-muted)]">{disclaimer}</p>
               </>
             )}
           </div>
-          <p className="mt-3 text-xs text-slate-400">{t('cfg_previewNote')}</p>
+          <p className="mt-3 text-xs text-[var(--ec-faint)]">{t('cfg_previewNote')}</p>
         </div>
 
       </div>
 
       {/* QuickBooks Connection */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mt-[18px] rounded-md bg-primary p-6 text-[#f9efe8] relative overflow-hidden">
+        <img src="/brand/excellentia-mark.png" alt="" className="pointer-events-none select-none absolute right-[210px] -top-10 w-[180px] opacity-[.07]" />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
-              </svg>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--ec-gold)]/[.16]">
+              <span className="text-[14px] font-extrabold text-[var(--ec-gold)]">QB</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-900">QuickBooks Online</p>
+              <p className="text-[15px] font-extrabold tracking-[.02em]">QUICKBOOKS ONLINE INTEGRATION</p>
               {qbLoading ? (
-                <p className="text-xs text-slate-400">Checking status…</p>
+                <p className="text-xs text-[#f9efe8]/60 mt-1.5">Checking status…</p>
               ) : qbStatus ? (
-                <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${qbStatus.token_valid ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${qbStatus.token_valid ? 'bg-green-500' : 'bg-amber-500'}`} />
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[11.5px] text-[#f9efe8]/60">
+                  <span className={`inline-flex items-center gap-1.5 ${qbStatus.token_valid ? 'text-[#7FD3B0]' : 'text-[var(--ec-gold)]'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${qbStatus.token_valid ? 'bg-[#159A6B]' : 'bg-[var(--ec-gold)]'}`} />
                     {qbStatus.token_valid ? 'Connected' : 'Token expired'}
                   </span>
-                  <span className="text-xs text-slate-400 capitalize">{qbStatus.environment}</span>
+                  <span>·</span>
+                  <span className="capitalize">{qbStatus.environment}</span>
                   {qbStatus.last_product_sync && (
-                    <span className="text-xs text-slate-400">
-                      Last sync: {new Date(qbStatus.last_product_sync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
+                    <>
+                      <span>·</span>
+                      <span>
+                        Last sync: {new Date(qbStatus.last_product_sync).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="mt-0.5 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span className="text-xs text-red-600">Not connected</span>
+                <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[11.5px]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#E3AFA9]" />
+                  <span className="text-[#E3AFA9]">Not connected</span>
                 </div>
               )}
             </div>
@@ -392,7 +394,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
             {qbStatus?.token_valid && (
               <a
                 href={`${API}/api/qb/disconnect`}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition"
+                className="flex items-center gap-2 rounded border border-[#f9efe8]/25 bg-transparent px-4 py-2.5 text-sm font-bold text-[#f9efe8] hover:bg-white/5 active:scale-[0.98] transition"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
@@ -403,7 +405,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
             )}
             <a
               href={`${API}/api/qb/auth`}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition"
+              className="flex items-center gap-2 rounded bg-[var(--ec-gold)] px-4 py-2.5 text-sm font-extrabold text-primary hover:brightness-95 active:scale-[0.98] transition"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
@@ -416,10 +418,10 @@ export default function SettingsClient({ settings, fetchError }: Props) {
 
       {/* Invoice Numbering — admin only, edita company_settings.invoice_counter */}
       {isAdmin && (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mt-[18px] rounded-md border border-[var(--ec-border)] bg-white p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--ec-warn-bg)]">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ec-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
                 <line x1="10" y1="13" x2="14" y2="13"/>
@@ -427,19 +429,19 @@ export default function SettingsClient({ settings, fetchError }: Props) {
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-zinc-900">{t('cfg_invoiceTitle')}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{t('cfg_invoiceNote')}</p>
+              <p className="text-[14.5px] font-extrabold text-[var(--ec-ink)]">{t('cfg_invoiceTitle')}</p>
+              <p className="mt-0.5 text-xs text-[var(--ec-muted)]">{t('cfg_invoiceNote')}</p>
 
               <div className="mt-4 flex flex-wrap items-end gap-3">
                 <div>
-                  <p className="mb-1.5 text-xs font-medium text-slate-600">{t('cfg_invoiceCurrent')}</p>
-                  <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-bold tabular-nums text-zinc-900 border border-slate-200">
+                  <p className="mb-1.5 text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_invoiceCurrent')}</p>
+                  <p className="rounded bg-[var(--ec-surface-alt)] px-3 py-2.5 text-sm font-mono font-bold tabular-nums text-[var(--ec-ink)] border border-[var(--ec-border)]">
                     {invoiceCounter != null ? `#${invoiceCounter}` : '—'}
                   </p>
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('cfg_invoiceNewLabel')}</label>
+                  <label className="mb-1.5 block text-[11.5px] font-bold tracking-[.09em] text-[#5A5049]">{t('cfg_invoiceNewLabel')}</label>
                   <input
                     type="number"
                     min={invoiceCounter != null ? invoiceCounter + 1 : 1}
@@ -447,7 +449,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                     value={newInvoiceInput}
                     onChange={e => setNewInvoiceInput(e.target.value)}
                     placeholder={invoiceCounter != null ? String(invoiceCounter + 1) : ''}
-                    className="w-40 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm tabular-nums focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-40 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-sm font-mono tabular-nums focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                   />
                 </div>
 
@@ -455,14 +457,14 @@ export default function SettingsClient({ settings, fetchError }: Props) {
                   type="button"
                   disabled={!newInvoiceValid || savingCounter}
                   onClick={() => setInvoiceConfirm(parsedNewInvoice)}
-                  className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-amber-600/20 hover:bg-amber-700 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded bg-[var(--ec-gold)] px-4 py-2.5 text-sm font-extrabold text-primary hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('cfg_invoiceUpdate')}
                 </button>
               </div>
 
               {newInvoiceInput.trim() !== '' && !newInvoiceValid && (
-                <p className="mt-2 text-xs text-red-500">
+                <p className="mt-2 text-xs text-[var(--ec-danger)]">
                   {invoiceCounter != null
                     ? `Debe ser un número entero mayor a #${invoiceCounter}`
                     : 'Debe ser un número entero positivo'}
@@ -484,11 +486,11 @@ export default function SettingsClient({ settings, fetchError }: Props) {
       )}
 
       {/* APK Download */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mt-[18px] rounded-md border border-[var(--ec-border)] bg-white p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-50">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--ec-success-bg)]">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ec-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="4" y="2" width="16" height="20" rx="2"/>
                 <line x1="8" y1="6" x2="16" y2="6"/>
                 <line x1="8" y1="10" x2="16" y2="10"/>
@@ -496,14 +498,14 @@ export default function SettingsClient({ settings, fetchError }: Props) {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-zinc-900">Android App</p>
-              <p className="text-xs text-slate-500">Download the APK for Android devices</p>
+              <p className="text-[14.5px] font-extrabold text-[var(--ec-ink)]">Android App</p>
+              <p className="text-xs text-[var(--ec-muted)]">Download the APK for Android devices</p>
             </div>
           </div>
           <a
             href="/excellentia.apk"
             download
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-green-600/20 hover:bg-green-700 active:scale-[0.98] transition"
+            className="flex items-center gap-2 rounded bg-primary px-5 py-2.5 text-sm font-extrabold text-white hover:bg-primary-dark active:scale-[0.98] transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -516,7 +518,7 @@ export default function SettingsClient({ settings, fetchError }: Props) {
       </div>
 
       {settings?.updated_at && (
-        <p className="mt-4 text-xs text-slate-400 text-right">
+        <p className="mt-4 text-xs font-mono text-[var(--ec-faint)] text-right">
           {t('cfg_lastUpdated')} {new Date(settings.updated_at).toLocaleString('en-US', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false

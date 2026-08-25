@@ -171,7 +171,7 @@ export default function ProductsClient() {
     return pages
   }, [meta.page, meta.totalPages])
 
-  const thCls = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500'
+  const thCls = 'px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]'
   const colSpan = 10 + (isAdmin ? 1 : 0) + (isInvoice ? 1 : 0)
 
   if (!ready) return null
@@ -179,18 +179,18 @@ export default function ProductsClient() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{t('prod_title')}</h1>
-          <p className="mt-0.5 text-sm text-slate-500">{t('prod_total')}: {meta.total}</p>
+          <h1 className="text-[26px] sm:text-[31px] font-extrabold tracking-[-.028em] text-[var(--ec-ink)]">{t('prod_title')}</h1>
+          <p className="mt-1.5 text-sm text-[var(--ec-muted)]">{t('prod_total')}: {meta.total}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleInvoiceMode}
-            className={`flex items-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[0.98] ${
+            className={`flex items-center gap-1.5 rounded border px-4 py-2.5 text-sm font-bold transition active:scale-[0.98] ${
               isInvoice
                 ? 'border-primary bg-primary text-white'
-                : 'border-slate-200 bg-white text-zinc-700 hover:bg-slate-50 hover:border-slate-300'
+                : 'border-[var(--ec-border-strong)] bg-white text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)]'
             }`}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -206,7 +206,7 @@ export default function ProductsClient() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded px-4 py-2.5 text-sm font-extrabold bg-[var(--ec-gold)] text-primary active:scale-[0.98] transition disabled:opacity-60"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={syncing ? 'animate-spin' : ''}>
                 <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -217,7 +217,7 @@ export default function ProductsClient() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] active:scale-[0.98] transition disabled:opacity-60"
             title="Recargar lista"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
@@ -232,33 +232,33 @@ export default function ProductsClient() {
 
       {/* Alerts */}
       {syncMsg && (
-        <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${syncMsg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${syncMsg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
           {syncMsg.text}
         </div>
       )}
       {fetchError && (
-        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{fetchError}</div>
+        <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">{fetchError}</div>
       )}
 
       {/* Stats */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--ec-border)] border border-[var(--ec-border)] rounded-md overflow-hidden">
         {[
-          { label: t('prod_statTotal'),   value: stats.total,     cls: 'bg-primary-50 text-primary' },
-          { label: t('prod_statSyncQb'),  value: stats.withQb,    cls: 'bg-green-50 text-green-700' },
-          { label: t('prod_statCode'),    value: stats.withBarcode, cls: 'bg-white text-zinc-900' },
-          { label: t('prod_statNoStock'), value: stats.lowStock,  cls: stats.lowStock > 0 ? 'bg-red-50 text-red-600' : 'bg-white text-zinc-900' },
+          { label: t('prod_statTotal'),   value: stats.total,     accent: '', labelCls: 'text-[var(--ec-faint)]', valueCls: 'text-[var(--ec-ink)]' },
+          { label: t('prod_statSyncQb'),  value: stats.withQb,    accent: 'border-t-[3px] border-t-[var(--ec-success)]', labelCls: 'text-[var(--ec-success-ink)]', valueCls: 'text-[var(--ec-success-ink)]' },
+          { label: t('prod_statCode'),    value: stats.withBarcode, accent: '', labelCls: 'text-[var(--ec-faint)]', valueCls: 'text-[var(--ec-ink)]' },
+          { label: t('prod_statNoStock'), value: stats.lowStock,  accent: stats.lowStock > 0 ? 'border-t-[3px] border-t-[var(--ec-danger)]' : '', labelCls: stats.lowStock > 0 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]', valueCls: stats.lowStock > 0 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-ink)]' },
         ].map(s => (
-          <div key={s.label} className={`${s.cls} rounded-xl border border-slate-200 p-4`}>
-            <p className="text-xs font-medium text-slate-500">{s.label}</p>
-            <p className="mt-1 text-2xl font-bold">{s.value}</p>
+          <div key={s.label} className={`bg-white p-4 ${s.accent}`}>
+            <p className={`text-[10.5px] font-bold uppercase tracking-[.14em] ${s.labelCls}`}>{s.label}</p>
+            <p className={`mt-1.5 text-2xl font-extrabold tracking-[-.03em] ${s.valueCls}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Search */}
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mt-5 mb-4 flex items-center gap-2">
         <div className="relative max-w-sm flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ec-faint)] pointer-events-none">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
@@ -266,14 +266,14 @@ export default function ProductsClient() {
             value={search}
             onChange={e => { setSearch(e.target.value); setMeta(prev => ({ ...prev, page: 1 })) }}
             placeholder={t('prod_search')}
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-4 text-sm shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded border border-[var(--ec-border-strong)] bg-white py-2.5 pl-9 pr-4 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
           />
         </div>
         <button
           onClick={() => setShowPricingInfo(true)}
           title={t('prod_infoBtn')}
           aria-label={t('prod_infoBtn')}
-          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-primary"
+          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded border border-[var(--ec-border-strong)] bg-white text-[var(--ec-muted)] transition hover:bg-[var(--ec-surface-alt)] hover:text-primary"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/>
@@ -287,7 +287,7 @@ export default function ProductsClient() {
 
       {/* Invoice mode indicator */}
       {isInvoice && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-700">
+        <div className="mb-4 flex items-center justify-between rounded border border-primary/25 bg-primary-50 px-4 py-2.5 text-sm text-primary">
           <span className="font-medium">{t('prod_invTitle')}</span>
           {invoiceItemCount > 0 && (
             <span className="font-semibold">{invoiceItemCount} {t('prod_invItems')} · ${invoiceTotal.toFixed(2)}</span>
@@ -296,10 +296,10 @@ export default function ProductsClient() {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-md border border-[var(--ec-border)] bg-white">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-[var(--ec-border)] bg-[var(--ec-surface-alt)]">
               <th className={thCls}>{t('prod_colProduct')}</th>
               <th className={thCls}>{t('prod_colPrice')}</th>
               <th className={thCls}>{t('prod_colSku')}</th>
@@ -314,7 +314,7 @@ export default function ProductsClient() {
               {isAdmin && <th className={`${thCls} w-12`}></th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--ec-divider)]">
             {products.map(p => (
               <ProductRow key={p.id} product={p} isAdmin={isAdmin} onEdit={setEditProduct}
                 isInvoice={isInvoice}
@@ -325,7 +325,7 @@ export default function ProductsClient() {
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-[var(--ec-faint)]">
                   {search
                     ? `${t('prod_noResults')} "${search}"`
                     : t('prod_empty')}
@@ -339,14 +339,14 @@ export default function ProductsClient() {
       {/* Pagination */}
       {meta.totalPages > 0 && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span>
+          <div className="flex items-center gap-2 text-sm text-[var(--ec-muted)]">
+            <span className="font-mono text-xs">
               {t('common_showing')} {Math.min((meta.page - 1) * meta.limit + 1, meta.total)}–{Math.min(meta.page * meta.limit, meta.total)} {t('common_of')} {meta.total}
             </span>
             <select
               value={meta.limit}
               onChange={e => setMeta(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
-              className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
+              className="ml-2 rounded border border-[var(--ec-border-strong)] bg-white px-2 py-1 text-xs focus:outline-none"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -356,21 +356,21 @@ export default function ProductsClient() {
             <button
               onClick={() => setMeta(prev => ({ ...prev, page: prev.page - 1 }))}
               disabled={meta.page <= 1}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-sm font-semibold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               ← {t('prod_pagePrev')}
             </button>
             {pageNumbers.map((p, i) =>
               p === -1 ? (
-                <span key={`e${i}`} className="px-2 text-slate-400">…</span>
+                <span key={`e${i}`} className="px-2 text-[var(--ec-faint)]">…</span>
               ) : (
                 <button
                   key={p}
                   onClick={() => setMeta(prev => ({ ...prev, page: p }))}
-                  className={`min-w-[32px] rounded-lg border px-2.5 py-1.5 text-sm font-medium shadow-sm transition ${
+                  className={`min-w-[32px] rounded border px-2.5 py-1.5 text-sm font-semibold transition ${
                     p === meta.page
                       ? 'border-primary bg-primary text-white'
-                      : 'border-slate-200 bg-white text-zinc-700 hover:bg-slate-50'
+                      : 'border-[var(--ec-border-strong)] bg-white text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)]'
                   }`}
                 >
                   {p}
@@ -380,7 +380,7 @@ export default function ProductsClient() {
             <button
               onClick={() => setMeta(prev => ({ ...prev, page: prev.page + 1 }))}
               disabled={meta.page >= meta.totalPages}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-sm font-semibold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {t('prod_pageNext')} →
             </button>

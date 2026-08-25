@@ -103,14 +103,14 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(0,51,50,.5)]" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md rounded-lg bg-[#f9efe8] p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-zinc-900">
+          <h2 className="text-lg font-extrabold text-[var(--ec-ink)]">
             {isEdit ? t('modal_editProd') : t('modal_newProd')}
           </h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-zinc-700 transition">
+          <button onClick={onClose} className="rounded p-1.5 text-[var(--ec-faint)] hover:bg-white hover:text-[var(--ec-ink)] transition">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -118,25 +118,25 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</div>
+          <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-2.5 text-sm text-[var(--ec-danger)]">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_name')}</label>
+            <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_name')}</label>
             <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
               className={fieldErrors.name ? inpErr : inp} placeholder="e.g. Fresh Cheese" />
-            {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
+            {fieldErrors.name && <p className="mt-1 text-xs text-[var(--ec-danger)]">{fieldErrors.name}</p>}
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_shortName')}</label>
+            <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_shortName')}</label>
             <input type="text" value={form.short_name} onChange={e => set('short_name', e.target.value)}
               className={inp} placeholder={t('modal_shortNamePh')} />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_salesDesc')}</label>
+            <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_salesDesc')}</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)}
               rows={2}
               className={`${inp} resize-none`} placeholder={t('modal_salesDescPh')} />
@@ -144,21 +144,21 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_price')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_price')}</label>
               <input type="number" step="0.01" min="0.01" value={form.price} onChange={e => set('price', e.target.value)}
                 className={fieldErrors.price ? inpErr : inp} placeholder="0.00" />
-              {fieldErrors.price && <p className="mt-1 text-xs text-red-600">{fieldErrors.price}</p>}
+              {fieldErrors.price && <p className="mt-1 text-xs text-[var(--ec-danger)]">{fieldErrors.price}</p>}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_weight')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_weight')}</label>
               <input type="number" step="0.01" min="0" value={form.weight_per_unit} onChange={e => set('weight_per_unit', e.target.value)}
                 className={fieldErrors.weight_per_unit ? inpErr : inp} placeholder="—" />
-              {fieldErrors.weight_per_unit && <p className="mt-1 text-xs text-red-600">{fieldErrors.weight_per_unit}</p>}
+              {fieldErrors.weight_per_unit && <p className="mt-1 text-xs text-[var(--ec-danger)]">{fieldErrors.weight_per_unit}</p>}
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_unit')}</label>
+            <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_unit')}</label>
             <select value={form.unit} onChange={e => set('unit', e.target.value)}
               className={inp}>
               <option value="">{t('modal_unitNone')}</option>
@@ -169,19 +169,19 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_qty')}</label>
+            <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_qty')}</label>
             <input type="number" step="1" min="0" value={form.qty} onChange={e => set('qty', e.target.value)}
               className={inp} placeholder="0" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_sku')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_sku')}</label>
               <input type="text" value={form.sku} onChange={e => set('sku', e.target.value)}
                 className={`${inp} font-mono`} placeholder={t('modal_skuPh')} />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_barcode')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_barcode')}</label>
               <input type="text" value={form.barcode} onChange={e => set('barcode', e.target.value)}
                 className={`${inp} font-mono`} placeholder={t('modal_barcodePh')} />
             </div>
@@ -189,13 +189,13 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_stock')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_stock')}</label>
               <input type="number" step="1" value={form.stock} onChange={e => set('stock', e.target.value)}
                 className={fieldErrors.stock ? inpErr : inp} placeholder="0" />
-              {fieldErrors.stock && <p className="mt-1 text-xs text-red-600">{fieldErrors.stock}</p>}
+              {fieldErrors.stock && <p className="mt-1 text-xs text-[var(--ec-danger)]">{fieldErrors.stock}</p>}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t('modal_minPrice')}</label>
+              <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_minPrice')}</label>
               <input type="number" step="0.01" min="0" value={form.min_price} onChange={e => set('min_price', e.target.value)}
                 className={inp} placeholder={t('modal_minPricePh')} />
             </div>
@@ -204,24 +204,24 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           {/* QB sync status */}
           {isEdit && (
             !product?.qb_item_id
-              ? <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              ? <div className="flex items-start gap-2 rounded border border-[var(--ec-warn-border)] bg-[var(--ec-warn-bg)] px-3 py-2 text-xs text-[var(--ec-warn-ink)]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   {t('modal_qbNotLinked')}
                 </div>
               : (product.qb_active === 0 || product.qb_active === false)
-              ? <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              ? <div className="flex items-start gap-2 rounded border border-[var(--ec-danger)]/25 bg-[var(--ec-danger-bg)] px-3 py-2 text-xs text-[var(--ec-danger)]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   {t('modal_qbInactive')}
                 </div>
-              : <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+              : <div className="flex items-center gap-2 rounded bg-[var(--ec-success-bg)] px-3 py-2 text-xs text-[var(--ec-success-ink)]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   {t('modal_qbSynced')} {product.qb_item_id}
                 </div>
           )}
 
           {/* QBO legend */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="rounded-md border border-[var(--ec-border)] bg-white px-4 py-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--ec-faint)]">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               {t('modal_qbReqs')}
             </p>
@@ -232,8 +232,8 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
                 { label: t('modal_reqSku'),      value: t('modal_reqSkuVal') },
                 { label: t('modal_reqPrice'),    value: t('modal_reqPriceVal') },
               ].map(item => (
-                <li key={item.label} className="flex gap-1.5 text-[11px] text-slate-500">
-                  <span className="shrink-0 font-medium text-slate-600">{item.label}:</span>
+                <li key={item.label} className="flex gap-1.5 text-[11px] text-[var(--ec-muted)]">
+                  <span className="shrink-0 font-medium text-[#5A5049]">{item.label}:</span>
                   <span>{item.value}</span>
                 </li>
               ))}
@@ -242,11 +242,11 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-slate-50 active:scale-[0.98]">
+              className="flex-1 rounded border border-[var(--ec-border-strong)] px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] transition hover:bg-white active:scale-[0.98]">
               {t('common_cancel')}
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.98] disabled:opacity-60">
+              className="flex-1 rounded bg-primary px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:opacity-60">
               {saving ? t('common_saving') : isEdit ? t('modal_saveChanges') : t('modal_create')}
             </button>
           </div>
@@ -256,5 +256,5 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   )
 }
 
-const inp = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100'
-const inpErr = 'w-full rounded-lg border border-red-400 bg-red-50 px-3 py-2 text-sm transition focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100'
+const inp = 'w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50'
+const inpErr = 'w-full rounded border border-[var(--ec-danger)]/50 bg-[var(--ec-danger-bg)] px-3 py-2 text-sm transition focus:border-[var(--ec-danger)] focus:outline-none focus:ring-2 focus:ring-[var(--ec-danger)]/20'

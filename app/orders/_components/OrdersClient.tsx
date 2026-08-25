@@ -168,10 +168,10 @@ function formatOrderQty(o: OrderRow): string {
 }
 
 const statusCls: Record<string, string> = {
-  SENT:      'bg-green-100 text-green-700',
-  PENDING:   'bg-amber-100 text-amber-700',
-  FAILED:    'bg-red-100 text-red-700',
-  CANCELLED: 'bg-slate-100 text-slate-500',
+  SENT:      'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+  PENDING:   'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+  FAILED:    'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
+  CANCELLED: 'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]',
 }
 
 function fmtDate(iso: string) {
@@ -240,9 +240,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     'On Account': t('ord_paymentAccount'),
   }
   const paymentCls: Record<string, string> = {
-    Cash: 'bg-green-100 text-green-700',
-    Check: 'bg-blue-100 text-blue-700',
-    'On Account': 'bg-amber-100 text-amber-700',
+    Cash: 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+    Check: 'bg-primary-50 text-primary',
+    'On Account': 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
   }
 
   const [dateFilter, setDateFilter] = useState<'TODAY' | 'ALL'>('TODAY')
@@ -377,17 +377,17 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     {/* Modal ticket */}
     {ticketBatch && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setTicketBatch(null); setTicketDamageItems([]); setTicketSignature(null) }} />
-        <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden">
+        <div className="absolute inset-0 bg-[rgba(0,51,50,.5)]" onClick={() => { setTicketBatch(null); setTicketDamageItems([]); setTicketSignature(null) }} />
+        <div className="relative w-full max-w-sm rounded-lg bg-[#f9efe8] shadow-2xl overflow-hidden p-5 max-h-[90vh] overflow-y-auto">
           {/* Cierre */}
           <button onClick={() => { setTicketBatch(null); setTicketDamageItems([]); setTicketSignature(null) }}
-            className="absolute right-3 top-3 z-10 rounded-full p-1 text-slate-400 hover:bg-slate-100">
+            className="absolute right-4 top-4 z-10 rounded-full p-1 text-[var(--ec-faint)] hover:bg-white">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
           {/* Ticket — same format as printed physical ticket */}
-          <div className="p-5 font-mono text-[11px] leading-5 text-black bg-white">
+          <div className="p-5 font-mono text-[11px] leading-5 text-[var(--ec-ink)] bg-white rounded border border-[var(--ec-border)]">
             {/* Company header */}
             <p className="font-bold">{company.company_name}</p>
             <p>{company.subtitle}</p>
@@ -475,14 +475,14 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                         <span>{t('tkt_subtotal')}</span>
                         <span>{fmt(ticketBatch.total)}</span>
                       </div>
-                      <div className="flex justify-between text-red-600 font-semibold">
+                      <div className="flex justify-between text-[var(--ec-danger)] font-semibold">
                         <span>{t('tkt_credits')}</span>
                         <span>{fmt(-creditsTotal)}</span>
                       </div>
                     </>
                   )}
                   {ticketBatch.creditApplied && ticketBatch.creditApplied > 0 && (
-                    <div className="flex justify-between text-green-600 font-semibold">
+                    <div className="flex justify-between text-[var(--ec-success-ink)] font-semibold">
                       <span>Credit Applied</span>
                       <span>{fmt(-ticketBatch.creditApplied)}</span>
                     </div>
@@ -524,7 +524,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               <img
                 src={`data:image/png;base64,${ticketSignature}`}
                 alt="Customer signature"
-                className="mt-1 w-full max-h-28 object-contain object-left bg-white border border-slate-100 rounded"
+                className="mt-1 w-full max-h-28 object-contain object-left bg-white border border-[var(--ec-border)] rounded"
               />
             ) : (
               <div className="h-10" />
@@ -536,10 +536,10 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
 
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{t('ord_title')}</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h1 className="text-[26px] sm:text-[31px] font-extrabold tracking-[-.028em] text-[var(--ec-ink)]">{t('ord_title')}</h1>
+          <p className="mt-1.5 text-sm text-[var(--ec-muted)]">
             {dateFilter === 'TODAY'
               ? t('ord_todaySubtitle').replace('{n}', String(dateFiltered.length)).replace('{total}', String(batches.length))
               : t('ord_allSubtitle').replace('{total}', String(batches.length))}
@@ -547,7 +547,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-slate-50 transition disabled:opacity-60">
+            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition disabled:opacity-60">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -555,7 +555,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             {exporting ? t('common_exporting') : t('common_export')}
           </button>
           <button onClick={() => router.refresh()}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition">
+            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] active:scale-[0.98] transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
@@ -565,39 +565,39 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       </div>
 
       {msg && (
-        <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
           {msg.text}
         </div>
       )}
       {fetchError && (
-        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{fetchError}</div>
+        <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">{fetchError}</div>
       )}
 
       {/* KPIs */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--ec-border)] border border-[var(--ec-border)] rounded-md overflow-hidden">
         {[
-          { label: t('ord_statusAll'),     value: counts.all,     cls: 'bg-white text-zinc-900' },
-          { label: t('ord_statusSent'),    value: counts.sent,    cls: 'bg-green-50 text-green-700' },
-          { label: t('ord_statusPending'), value: counts.pending, cls: 'bg-amber-50 text-amber-700' },
-          { label: t('ord_statusFailed'),  value: counts.failed,  cls: counts.failed > 0 ? 'bg-red-50 text-red-700' : 'bg-white text-zinc-900' },
+          { label: t('ord_statusAll'),     value: counts.all,     accent: '', labelCls: 'text-[var(--ec-faint)]', valueCls: 'text-[var(--ec-ink)]' },
+          { label: t('ord_statusSent'),    value: counts.sent,    accent: 'border-t-[3px] border-t-[var(--ec-success)]', labelCls: 'text-[var(--ec-success-ink)]', valueCls: 'text-[var(--ec-success-ink)]' },
+          { label: t('ord_statusPending'), value: counts.pending, accent: 'border-t-[3px] border-t-[var(--ec-gold)]', labelCls: 'text-[var(--ec-warn-ink)]', valueCls: 'text-[var(--ec-warn-ink)]' },
+          { label: t('ord_statusFailed'),  value: counts.failed,  accent: counts.failed > 0 ? 'border-t-[3px] border-t-[var(--ec-danger)]' : '', labelCls: counts.failed > 0 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]', valueCls: counts.failed > 0 ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-ink)]' },
         ].map(s => (
-          <div key={s.label} className={`${s.cls} rounded-xl border border-slate-200 p-4`}>
-            <p className="text-xs font-medium text-slate-500">{s.label}</p>
-            <p className="mt-1 text-2xl font-bold">{s.value}</p>
+          <div key={s.label} className={`bg-white p-4 ${s.accent}`}>
+            <p className={`text-[10.5px] font-bold uppercase tracking-[.14em] ${s.labelCls}`}>{s.label}</p>
+            <p className={`mt-1.5 text-2xl font-extrabold tracking-[-.03em] ${s.valueCls}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {/* Fecha */}
-        <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+        <div className="flex rounded border border-[var(--ec-border-strong)] bg-white overflow-hidden">
           {(['TODAY', 'ALL'] as const).map(key => (
             <button key={key} onClick={() => { setDateFilter(key); setStatusFilter('ALL') }}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              className={`px-3.5 py-2 text-xs font-bold transition ${
                 dateFilter === key
-                  ? 'bg-zinc-900 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-zinc-700'
+                  ? 'bg-primary text-white'
+                  : 'text-[var(--ec-muted)] hover:text-[var(--ec-ink)]'
               }`}>
               {key === 'TODAY' ? t('ord_today') : t('ord_all')}
             </button>
@@ -608,14 +608,14 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
         <div className="flex gap-1.5 flex-wrap">
           {chips.map(c => (
             <button key={c.key} onClick={() => setStatusFilter(c.key)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded px-3 py-2 text-xs font-bold transition ${
                 statusFilter === c.key
-                  ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600/20'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                  ? 'bg-primary text-white'
+                  : 'bg-white border border-[var(--ec-border-strong)] text-[#4F463F] hover:bg-[var(--ec-surface-alt)]'
               }`}>
               {c.label}
-              <span className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
-                statusFilter === c.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+              <span className={`rounded px-1.5 py-px text-[10px] font-bold ${
+                statusFilter === c.key ? 'bg-white/20 text-white' : 'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]'
               }`}>{c.count}</span>
             </button>
           ))}
@@ -623,39 +623,39 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
 
         {/* Payment */}
         <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100">
+          className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2.5 text-xs font-bold text-[#4F463F] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50">
           {paymentChips.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
 
         <div className="relative flex-1 min-w-[200px]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ec-faint)] pointer-events-none">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t('ord_search')}
-            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-4 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded border border-[var(--ec-border-strong)] bg-white py-2.5 pl-8 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-md border border-[var(--ec-border)] bg-white">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colOrder')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colCustomer')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colProducts')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colTotal')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colPayment')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colStatus')}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colDate')}</th>
-              {isAdmin && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('ord_colOperator')}</th>}
+            <tr className="border-b border-[var(--ec-border)] bg-[var(--ec-surface-alt)]">
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colOrder')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colCustomer')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colProducts')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colTotal')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colPayment')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colStatus')}</th>
+              <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colDate')}</th>
+              {isAdmin && <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('ord_colOperator')}</th>}
               {isAdmin && <th className="px-4 py-3" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--ec-divider)]">
             {filtered.map(batch => {
               const cfg = statusCfg[batch.status] ?? statusCfg.PENDING
               const isExpanded = expanded === batch.batchId
@@ -665,81 +665,81 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               return (
                 <React.Fragment key={batch.batchId}>
                   <tr
-                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="hover:bg-[var(--ec-surface-alt)]/60 transition-colors cursor-pointer"
                     onClick={() => handleExpand(batch.batchId)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                          className={`text-[var(--ec-faint)] transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
                           <polyline points="9 18 15 12 9 6"/>
                         </svg>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <p className="font-mono text-xs font-semibold text-zinc-800">#{batch.batchId.slice(-8).toUpperCase()}</p>
+                            <p className="font-mono text-xs font-semibold text-[var(--ec-ink)]">#{batch.batchId.slice(-8).toUpperCase()}</p>
                             {batchSignatures.get(batch.batchId) && (
-                              <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 border border-blue-100">
+                              <span className="inline-flex items-center rounded-full bg-primary-50 px-1.5 py-0.5 text-[9px] font-semibold text-primary border border-primary/15">
                                 ✎ {t('ord_hasSig')}
                               </span>
                             )}
                             {(expandedDamage.get(batch.batchId)?.length ?? 0) > 0 && (
-                              <span className="inline-flex items-center rounded-full bg-orange-50 px-1.5 py-0.5 text-[9px] font-semibold text-orange-600 border border-orange-100">
+                              <span className="inline-flex items-center rounded-full bg-[var(--ec-warn-bg)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ec-warn-ink)] border border-[var(--ec-warn-border)]">
                                 ↩ {t('ord_negSale')}
                               </span>
                             )}
                           </div>
                           {batch.invoiceId && (
-                            <p className="text-[10px] text-slate-400">{t('ord_invoice')} #{batch.invoiceId}</p>
+                            <p className="text-[10px] font-mono text-[var(--ec-faint)]">{t('ord_invoice')} #{batch.invoiceId}</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {batch.customerName ?? <span className="text-slate-400 italic">{t('ord_noCustomer')}</span>}
+                    <td className="px-4 py-3 font-semibold text-[var(--ec-ink)]">
+                      {batch.customerName ?? <span className="text-[var(--ec-faint)] italic font-normal">{t('ord_noCustomer')}</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="rounded bg-[var(--ec-surface-alt)] px-2 py-0.5 text-[11px] font-semibold text-[#5C534C]">
                         {batch.orders.length} {t('ord_items')}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-900">{fmt(batch.total - batch.damageCredits - (batch.creditApplied ?? 0))}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[var(--ec-ink)]">{fmt(batch.total - batch.damageCredits - (batch.creditApplied ?? 0))}</td>
                     <td className="px-4 py-3">
                       {batch.paymentMethod ? (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${paymentCls[batch.paymentMethod] ?? 'bg-slate-100 text-slate-500'}`}>
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className={`inline-block rounded px-2.5 py-0.5 text-[10.5px] font-bold ${paymentCls[batch.paymentMethod] ?? 'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]'}`}>
                             {paymentLabel[batch.paymentMethod] ?? batch.paymentMethod}
                           </span>
                           {batch.paymentMethod === 'Check' && batch.checkNumber && (
-                            <span className="text-[10px] text-slate-400">#{batch.checkNumber}</span>
+                            <span className="text-[10px] font-mono text-[var(--ec-faint)]">#{batch.checkNumber}</span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-[var(--ec-border-strong)]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${cfg.cls}`}>
+                      <span className={`inline-block rounded px-2.5 py-0.5 text-[10px] font-extrabold tracking-[.08em] ${cfg.cls}`}>
                         {cfg.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{fmtDate(batch.createdAt)}</td>
+                    <td className="px-4 py-3 font-mono text-[var(--ec-muted)] text-[10.5px]">{fmtDate(batch.createdAt)}</td>
                     {isAdmin && (
                       <td className="px-4 py-3">
                         {(batch.userName || batch.userEmail) ? (
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[9.5px] font-extrabold text-[var(--ec-muted)] uppercase">
                               {(batch.userName ?? batch.userEmail ?? '?')[0]}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-medium text-zinc-700 truncate max-w-[120px]">
+                              <p className="text-[11.5px] font-medium text-[var(--ec-ink)] truncate max-w-[120px]">
                                 {batch.userName ?? batch.userEmail}
                               </p>
                               {batch.userName && batch.userEmail && (
-                                <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{batch.userEmail}</p>
+                                <p className="text-[10px] text-[var(--ec-faint)] truncate max-w-[120px]">{batch.userEmail}</p>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">—</span>
+                          <span className="text-xs text-[var(--ec-faint)] italic">—</span>
                         )}
                       </td>
                     )}
@@ -747,7 +747,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                       <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => openTicket(batch)}
-                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition">
+                            className="flex items-center gap-1 rounded border border-[var(--ec-border-strong)] bg-white px-2.5 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                               <polyline points="14 2 14 8 20 8"/>
@@ -756,7 +756,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                           </button>
                         {canSync && (
                           <button onClick={() => handleForceSync(batch)} disabled={isSyncing}
-                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition">
+                            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-50 transition">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                               className={isSyncing ? 'animate-spin' : ''}>
                               <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -772,37 +772,37 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                   {/* Expanded items */}
                   {isExpanded && (
                     <tr key={`${batch.batchId}-items`}>
-                      <td colSpan={isAdmin ? 9 : 7} className="bg-slate-50 px-4 pb-3 pt-0">
-                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                      <td colSpan={isAdmin ? 9 : 7} className="bg-[var(--ec-surface-alt)] px-4 pb-3 pt-0">
+                        <div className="rounded-md border border-[var(--ec-border)] bg-white overflow-hidden">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="border-b border-slate-100 bg-slate-50">
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Product</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Barcode</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Unit</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Quantity</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Price</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Total</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+                              <tr className="border-b border-[var(--ec-border)] bg-[var(--ec-surface-alt)]">
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Product</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Barcode</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Unit</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Quantity</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Price</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Total</th>
+                                <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Status</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-[var(--ec-divider)]">
                               {batch.orders.map(o => {
                                 const sCfg = statusCfg[o.status] ?? statusCfg.PENDING
                                 return (
-                                  <tr key={o.id} className="hover:bg-slate-50">
-                                    <td className="px-3 py-2 font-medium text-zinc-800">{o.product_name}</td>
-                                    <td className="px-3 py-2 font-mono text-slate-500">{o.barcode}</td>
-                                    <td className="px-3 py-2 text-slate-600">
-                                      <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  <tr key={o.id} className="hover:bg-[var(--ec-surface-alt)]/60">
+                                    <td className="px-3 py-2 font-medium text-[var(--ec-ink)]">{o.product_name}</td>
+                                    <td className="px-3 py-2 font-mono text-[var(--ec-muted)]">{o.barcode}</td>
+                                    <td className="px-3 py-2 text-[var(--ec-muted)]">
+                                      <span className="inline-block rounded bg-[var(--ec-surface-alt)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ec-muted)]">
                                         {orderUnitLabel(o.unit)}
                                       </span>
                                     </td>
-                                    <td className="px-3 py-2 text-slate-600">{formatOrderQty(o)}</td>
-                                    <td className="px-3 py-2 text-slate-600">{fmt(o.price)}</td>
-                                    <td className="px-3 py-2 font-semibold text-zinc-900">{fmt(Number(o.total))}</td>
+                                    <td className="px-3 py-2 font-mono text-[var(--ec-muted)]">{formatOrderQty(o)}</td>
+                                    <td className="px-3 py-2 font-mono text-[var(--ec-muted)]">{fmt(o.price)}</td>
+                                    <td className="px-3 py-2 font-mono font-semibold text-[var(--ec-ink)]">{fmt(Number(o.total))}</td>
                                     <td className="px-3 py-2">
-                                      <span className={`inline-block rounded-full px-2 py-px text-[10px] font-semibold ${sCfg.cls}`}>
+                                      <span className={`inline-block rounded px-2 py-px text-[10px] font-semibold ${sCfg.cls}`}>
                                         {sCfg.label}
                                       </span>
                                     </td>
@@ -815,21 +815,21 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
 
                         {/* Negative Sale */}
                         {(expandedDamage.get(batch.batchId)?.length ?? 0) > 0 && (
-                          <div className="mt-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3">
+                          <div className="mt-2 rounded-md border border-[var(--ec-warn-border)] bg-[var(--ec-warn-bg)] px-4 py-3">
                             <div className="mb-1.5 flex items-center justify-between">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[var(--ec-warn-ink)]">
                                 Negative Sale
                               </p>
-                              <p className="text-xs font-bold text-red-600">
+                              <p className="text-xs font-bold text-[var(--ec-danger)]">
                                 {fmt(-expandedDamage.get(batch.batchId)!.reduce((s, d) => s + (d.amount ?? d.qty * (d.unit_price ?? 0)), 0))}
                               </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {expandedDamage.get(batch.batchId)!.map((d, i) => (
-                                <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white border border-orange-200 px-2.5 py-1 text-xs font-medium text-orange-700">
+                                <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--ec-warn-border)] px-2.5 py-1 text-xs font-medium text-[var(--ec-warn-ink)]">
                                   <span className="font-semibold">{formatDamageQty(d.qty, d.unit)}</span> · {d.product_name}
                                   {(d.amount ?? d.unit_price) != null && (
-                                    <span className="text-orange-500">{fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}</span>
+                                    <span className="text-[var(--ec-danger)]">{fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}</span>
                                   )}
                                 </span>
                               ))}
@@ -844,7 +844,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 9 : 7} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={isAdmin ? 9 : 7} className="px-4 py-12 text-center text-sm text-[var(--ec-faint)]">
                   {search || statusFilter !== 'ALL'
                     ? t('ord_emptyFilter')
                     : dateFilter === 'TODAY'
@@ -858,7 +858,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       </div>
 
       {filtered.length > 0 && (
-        <p className="mt-3 text-xs text-slate-400 text-right">
+        <p className="mt-3 text-xs font-mono text-[var(--ec-faint)] text-right">
           {t('common_showing')} {filtered.length} {t('common_of')} {dateFiltered.length} {dateFilter === 'TODAY' ? t('ord_showingToday') : t('ord_items')}
         </p>
       )}

@@ -64,16 +64,16 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap justify-end sm:justify-start">
       {/* Preset chips */}
-      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm overflow-x-auto">
+      <div className="flex items-center gap-1 rounded border border-[var(--ec-border-strong)] bg-white p-1 overflow-x-auto">
         {presets.map(f => (
           <Link
             key={f.key}
             href={`/dashboard?filter=${f.key}`}
             onClick={() => setShowPicker(false)}
-            className={`rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`rounded px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
               current === f.key
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-500 hover:text-zinc-900 hover:bg-slate-50'
+                ? 'bg-primary text-white'
+                : 'text-[var(--ec-muted)] hover:text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)]'
             }`}
           >
             {f.label}
@@ -85,10 +85,10 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
       <div className="relative" ref={pickerRef}>
         <button
           onClick={() => setShowPicker(v => !v)}
-          className={`flex items-center gap-1 sm:gap-1.5 rounded-xl border px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold shadow-sm transition-all whitespace-nowrap ${
+          className={`flex items-center gap-1 sm:gap-1.5 rounded border px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
             isCustom
-              ? 'border-blue-500 bg-blue-600 text-white'
-              : 'border-slate-200 bg-white text-slate-500 hover:text-zinc-900 hover:bg-slate-50'
+              ? 'border-primary bg-primary text-white'
+              : 'border-[var(--ec-border-strong)] bg-white text-[var(--ec-muted)] hover:text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)]'
           }`}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -103,48 +103,48 @@ export default function DateFilter({ current, currentFrom, currentTo }: Props) {
 
         {/* Picker dropdown */}
         {showPicker && (
-          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dt_rangeTitle')}</p>
+          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-md border border-[var(--ec-border)] bg-white p-4 shadow-xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--ec-muted)]">{t('dt_rangeTitle')}</p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('dt_from')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('dt_from')}</label>
                 <input
                   type="date"
                   value={from}
                   max={to}
                   onChange={e => setFrom(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('dt_to')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('dt_to')}</label>
                 <input
                   type="date"
                   value={to}
                   min={from}
                   max={todayStr()}
                   onChange={e => setTo(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
               </div>
             </div>
 
             {from > to && (
-              <p className="mt-2 text-xs text-red-500">{t('dt_dateError')}</p>
+              <p className="mt-2 text-xs text-[var(--ec-danger)]">{t('dt_dateError')}</p>
             )}
 
             <div className="mt-4 flex items-center justify-between gap-2">
               <button
                 onClick={() => setShowPicker(false)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                className="rounded border border-[var(--ec-border-strong)] px-3 py-2 text-xs font-semibold text-[var(--ec-muted)] hover:bg-[var(--ec-surface-alt)] transition"
               >
                 {t('dt_cancel')}
               </button>
               <button
                 onClick={apply}
                 disabled={!from || !to || from > to}
-                className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-50"
+                className="flex-1 rounded bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-dark active:scale-[0.98] transition disabled:opacity-50"
               >
                 {t('dt_apply')}
               </button>

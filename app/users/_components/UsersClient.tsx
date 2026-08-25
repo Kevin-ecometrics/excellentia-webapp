@@ -28,8 +28,8 @@ interface QbClass {
 }
 
 const roleBadge: Record<string, string> = {
-  admin:    'bg-blue-100 text-blue-700',
-  operator: 'bg-slate-100 text-slate-600',
+  admin:    'bg-primary-50 text-primary',
+  operator: 'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]',
 }
 
 function fmtDate(iso: string) {
@@ -54,13 +54,13 @@ function DeleteModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[rgba(0,51,50,.5)]"
         onClick={!deleting ? onCancel : undefined}
       />
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-start gap-4 rounded-t-2xl bg-red-50 px-6 py-5 border-b border-red-100">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="relative w-full max-w-md rounded-lg bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-4 rounded-t-lg bg-[var(--ec-danger-bg)] px-6 py-5 border-b border-[var(--ec-danger)]/20">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ec-danger)]/15">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ec-danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
               <path d="M10 11v6M14 11v6"/>
@@ -68,30 +68,30 @@ function DeleteModal({
             </svg>
           </div>
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">{t('usr_delTitle')}</h2>
-            <p className="mt-0.5 text-sm text-slate-500">{t('usr_delSubtitle')}</p>
+            <h2 className="text-base font-bold text-[var(--ec-ink)]">{t('usr_delTitle')}</h2>
+            <p className="mt-0.5 text-sm text-[var(--ec-muted)]">{t('usr_delSubtitle')}</p>
           </div>
         </div>
         <div className="px-6 py-5">
-          <p className="text-sm text-slate-600">{t('usr_delBody')}</p>
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-600 uppercase">
+          <p className="text-sm text-[var(--ec-muted)]">{t('usr_delBody')}</p>
+          <div className="mt-3 flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-[var(--ec-surface-alt)] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ec-border-strong)] text-sm font-bold text-[var(--ec-muted)] uppercase">
               {user.email[0]}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-900">{user.email}</p>
-              <p className="text-xs text-slate-400">{user.role === 'admin' ? t('usr_admin') : t('usr_operator')} · {fmtDate(user.created_at)}</p>
+              <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{user.email}</p>
+              <p className="text-xs text-[var(--ec-faint)]">{user.role === 'admin' ? t('usr_admin') : t('usr_operator')} · {fmtDate(user.created_at)}</p>
             </div>
           </div>
-          <p className="mt-4 text-xs text-slate-400">{t('usr_delNote')}</p>
+          <p className="mt-4 text-xs text-[var(--ec-faint)]">{t('usr_delNote')}</p>
         </div>
-        <div className="flex items-center justify-end gap-3 rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 rounded-b-lg border-t border-[var(--ec-border)] bg-[var(--ec-surface-alt)] px-6 py-4">
           <button onClick={onCancel} disabled={deleting}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-50">
+            className="rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition disabled:opacity-50">
             {t('common_cancel')}
           </button>
           <button onClick={onConfirm} disabled={deleting}
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 active:scale-[0.98] transition disabled:opacity-60">
+            className="flex items-center gap-2 rounded bg-[var(--ec-danger)] px-4 py-2.5 text-sm font-bold text-white hover:brightness-90 active:scale-[0.98] transition disabled:opacity-60">
             {deleting ? (
               <>
                 <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -262,14 +262,14 @@ export default function UsersClient({ users, fetchError }: Props) {
 
       <div>
         {/* Header */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">{t('usr_title')}</h1>
-            <p className="mt-0.5 text-sm text-slate-500">{users.length} {t('usr_count')}</p>
+            <h1 className="text-[26px] sm:text-[31px] font-extrabold tracking-[-.028em] text-[var(--ec-ink)]">{t('usr_title')}</h1>
+            <p className="mt-1.5 text-sm text-[var(--ec-muted)]">{users.length} {t('usr_count')}</p>
           </div>
           <button
             onClick={() => { setShowForm(v => !v); setMsg(null) }}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition"
+            className="flex items-center gap-1.5 rounded bg-[var(--ec-gold)] px-5 py-2.5 text-sm font-extrabold text-primary active:scale-[0.98] transition"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -280,52 +280,52 @@ export default function UsersClient({ users, fetchError }: Props) {
 
         {/* Alerts */}
         {msg && (
-          <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
             {msg.text}
           </div>
         )}
         {fetchError && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{fetchError}</div>
+          <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">{fetchError}</div>
         )}
 
         {/* Create form */}
         {showForm && (
-          <form onSubmit={handleCreate} className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
-            <p className="mb-4 text-sm font-semibold text-zinc-900">{t('usr_formTitle')}</p>
+          <form onSubmit={handleCreate} className="mb-6 rounded-md border border-[var(--ec-border)] bg-[var(--ec-surface-alt)] p-5">
+            <p className="mb-4 text-sm font-bold text-[var(--ec-ink)]">{t('usr_formTitle')}</p>
             {classesError && (
-              <p className="mb-3 text-xs text-red-600">{classesError}</p>
+              <p className="mb-3 text-xs text-[var(--ec-danger)]">{classesError}</p>
             )}
             <div className="grid gap-3 sm:grid-cols-5">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_name')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_name')}</label>
                 <input
                   type="text" value={name}
                   onChange={e => setName(e.target.value)}
                     placeholder="John Doe"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_email')}</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_email')}</label>
                 <input
                   type="text" value={email}
                   onChange={e => { setEmail(e.target.value); setFormErrors(prev => ({ ...prev, email: '' })) }}
                     placeholder="operator@company.com"
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${formErrors.email ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+                  className={`w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${formErrors.email ? 'border-[var(--ec-danger)]/40 bg-[var(--ec-danger-bg)] focus:border-[var(--ec-danger)] focus:ring-[var(--ec-danger)]/20' : 'border-[var(--ec-border-strong)] bg-white focus:border-primary focus:ring-primary-50'}`}
                 />
-                {formErrors.email && <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>}
+                {formErrors.email && <p className="mt-1 text-xs text-[var(--ec-danger)]">{formErrors.email}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_password')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_password')}</label>
                 <div className="relative">
                   <input
                     type={showPw ? 'text' : 'password'} value={password}
                     onChange={e => { setPassword(e.target.value); setFormErrors(prev => ({ ...prev, password: '' })) }}
                     placeholder={t('usr_pwPh')}
-                    className={`w-full rounded-lg border px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 ${formErrors.password ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-300 bg-white focus:border-primary focus:ring-blue-100'}`}
+                    className={`w-full rounded border px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 ${formErrors.password ? 'border-[var(--ec-danger)]/40 bg-[var(--ec-danger-bg)] focus:border-[var(--ec-danger)] focus:ring-[var(--ec-danger)]/20' : 'border-[var(--ec-border-strong)] bg-white focus:border-primary focus:ring-primary-50'}`}
                   />
                   <button type="button" onClick={() => setShowPw(v => !v)} tabIndex={-1}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-zinc-600 transition">
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--ec-faint)] hover:text-[var(--ec-ink)] transition">
                     {showPw
                       ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                       : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -333,10 +333,10 @@ export default function UsersClient({ users, fetchError }: Props) {
                   </button>
                 </div>
                 {formErrors.password
-                  ? <p className="mt-1 text-xs text-red-600">{formErrors.password}</p>
+                  ? <p className="mt-1 text-xs text-[var(--ec-danger)]">{formErrors.password}</p>
                   : password.length > 0 && (
                     <div className="mt-1 flex items-center gap-1.5">
-                      <div className="h-1 flex-1 rounded-full bg-slate-200 overflow-hidden">
+                      <div className="h-1 flex-1 rounded-full bg-[var(--ec-border-strong)] overflow-hidden">
                         <div className={`h-full rounded-full transition-all ${password.length >= 10 ? 'bg-green-500 w-full' : password.length >= 6 ? 'bg-amber-400 w-2/3' : 'bg-red-400 w-1/3'}`} />
                       </div>
                       <span className={`text-[10px] font-medium ${password.length >= 10 ? 'text-green-600' : password.length >= 6 ? 'text-amber-600' : 'text-red-500'}`}>
@@ -347,20 +347,20 @@ export default function UsersClient({ users, fetchError }: Props) {
                 }
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_role')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_role')}</label>
                 <select
                   value={role} onChange={e => setRole(e.target.value as 'operator' | 'admin')}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 >
                   <option value="operator">{t('usr_operator')}</option>
                   <option value="admin">{t('usr_admin')}</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_qbClass')}</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_qbClass')}</label>
                 <select
                   value={qbClassId} onChange={e => setQbClassId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 >
                   <option value="">{t('usr_qbClassNone')}</option>
                   {classes.map(c => (
@@ -371,7 +371,7 @@ export default function UsersClient({ users, fetchError }: Props) {
             </div>
             <div className="mt-4 flex justify-end">
               <button type="submit" disabled={creating}
-                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-60">
+                className="rounded bg-primary px-5 py-2.5 text-sm font-extrabold text-white hover:bg-primary-dark active:scale-[0.98] transition disabled:opacity-60">
                 {creating ? t('usr_creating') : t('usr_create')}
               </button>
             </div>
@@ -379,52 +379,52 @@ export default function UsersClient({ users, fetchError }: Props) {
         )}
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-md border border-[var(--ec-border)] bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colName')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colEmail')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colRole')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_qbClass')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('usr_colCreated')}</th>
+              <tr className="border-b border-[var(--ec-border)] bg-[var(--ec-surface-alt)]">
+                <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('usr_colName')}</th>
+                <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('usr_colEmail')}</th>
+                <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('usr_colRole')}</th>
+                <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('usr_qbClass')}</th>
+                <th className="px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]">{t('usr_colCreated')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--ec-divider)]">
               {users.map(u => (
                 <React.Fragment key={u.id}>
                   {/* Fila normal */}
-                  <tr className={`transition-colors ${editing?.id === u.id ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                  <tr className={`transition-colors ${editing?.id === u.id ? 'bg-amber-50' : 'hover:bg-[var(--ec-surface-alt)]/60'}`}>
                     {/* Nombre */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500 uppercase">
+                        <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[10px] font-extrabold text-[var(--ec-muted)] uppercase">
                           {(u.name ?? u.email)[0]}
                         </div>
-                        <span className="font-medium text-zinc-900">
-                          {u.name ?? <span className="text-slate-400 italic">{t('usr_noName')}</span>}
+                        <span className="font-semibold text-[var(--ec-ink)]">
+                          {u.name ?? <span className="text-[var(--ec-faint)] italic font-normal">{t('usr_noName')}</span>}
                         </span>
                       </div>
                     </td>
                     {/* Email */}
-                    <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ec-muted)]">{u.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${roleBadge[u.role] ?? 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`inline-block rounded px-2.5 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${roleBadge[u.role] ?? 'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]'}`}>
                         {u.role === 'admin' ? t('usr_admin') : t('usr_operator')}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {classes.find(c => c.id === u.qb_class_id)?.name ?? <span className="text-slate-400 italic">{t('usr_qbClassNone')}</span>}
+                    <td className="px-4 py-3 font-mono text-[11px] text-[var(--ec-muted)]">
+                      {classes.find(c => c.id === u.qb_class_id)?.name ?? <span className="text-[var(--ec-faint)] italic font-sans">{t('usr_qbClassNone')}</span>}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{fmtDate(u.created_at)}</td>
+                    <td className="px-4 py-3 font-mono text-[10.5px] text-[var(--ec-muted)]">{fmtDate(u.created_at)}</td>
                     <td className="px-4 py-3 text-right">
                       {editing?.id === u.id ? (
                         <span className="text-xs font-medium text-amber-600">{t('usr_editing')}</span>
                       ) : (
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => startEdit(u)}
-                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition">
+                            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -432,7 +432,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                             {t('common_edit')}
                           </button>
                           <button onClick={() => { setEditing(null); setDeleteTarget(u) }}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-300 transition">
+                            className="flex items-center gap-1.5 rounded border border-[var(--ec-danger)]/30 bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3 6 5 6 21 6"/>
                               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -448,11 +448,11 @@ export default function UsersClient({ users, fetchError }: Props) {
                   {editing?.id === u.id && (
                     <tr key={`edit-${u.id}`}>
                       <td colSpan={6} className="bg-amber-50 px-4 pb-4 pt-0">
-                        <form onSubmit={handleSave} className="rounded-xl border border-amber-200 bg-white p-4">
+                        <form onSubmit={handleSave} className="rounded-md border border-amber-200 bg-white p-4">
                           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">{t('usr_editTitle')}</p>
                           <div className="grid gap-3 sm:grid-cols-5">
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_name')}</label>
+                              <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_name')}</label>
                               <input
                                 type="text" value={editing.name}
                                 onChange={e => setEditing({ ...editing, name: e.target.value })}
@@ -461,7 +461,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                 />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_email')}</label>
+                              <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_email')}</label>
                               <input
                                 type="email" required value={editing.email}
                                 onChange={e => setEditing({ ...editing, email: e.target.value })}
@@ -469,7 +469,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_role')}</label>
+                              <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_role')}</label>
                               <select
                                 value={editing.role}
                                 onChange={e => setEditing({ ...editing, role: e.target.value as 'operator' | 'admin' })}
@@ -480,7 +480,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                               </select>
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-slate-600">
+                              <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">
                                 {t('usr_newPw')} <span className="font-normal text-slate-400">{t('usr_newPwOpt')}</span>
                               </label>
                               <input
@@ -491,7 +491,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-slate-600">{t('usr_qbClass')}</label>
+                              <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_qbClass')}</label>
                               <select
                                 value={editing.qbClassId}
                                 onChange={e => setEditing({ ...editing, qbClassId: e.target.value })}
@@ -529,7 +529,7 @@ export default function UsersClient({ users, fetchError }: Props) {
               ))}
               {users.length === 0 && !fetchError && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-[var(--ec-faint)]">
                     {t('usr_empty')}
                   </td>
                 </tr>

@@ -40,39 +40,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh bg-[#f9efe8]">
 
       {/* ── Panel izquierdo — branding ─────────────────── */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-between bg-primary p-12">
+      <div className="hidden lg:flex lg:w-[52%] flex-col justify-between bg-primary p-14 relative overflow-hidden">
+        <img src="/brand/excellentia-mark.png" alt="" className="pointer-events-none select-none absolute -right-36 -bottom-28 w-[620px] opacity-[.07]" />
+
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </div>
-          <span className="text-lg font-bold text-white tracking-tight">Excellentia</span>
-        </div>
+        <img src="/brand/excellentia-lockup.png" alt="Excellentia Foods" className="w-[210px] relative" />
 
         {/* Central content */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 mb-4">OMS Platform</p>
-          <h2 className="text-4xl font-bold text-white leading-tight mb-6">
-            Order Management<br/>and Real-Time Sync<br/>with QuickBooks
+        <div className="relative max-w-[460px]">
+          <p className="text-[11px] font-bold uppercase tracking-[.24em] text-[var(--ec-gold)]">OMS Platform · V2.0</p>
+          <h2 className="mt-4 text-[38px] font-extrabold leading-[1.1] tracking-[-.025em] text-[#f9efe8]">
+            One catalog. One ledger.<br/>Two systems in step.
           </h2>
-          <p className="text-blue-200 text-base leading-relaxed max-w-sm">
-            Manage products, monitor orders, and keep real-time sync with QuickBooks Online from a single place.
+          <p className="mt-4 text-[14.5px] leading-[1.7] text-[#f9efe8]/60">
+            Every order placed on the Android app lands in QuickBooks Online.
+            This dashboard is where you watch it happen and fix it when it doesn&apos;t.
           </p>
 
-          {/* Feature bullets */}
-          <ul className="mt-10 space-y-4">
+          <ul className="mt-9 space-y-3.5">
             {[
               'Automatic sync with QuickBooks',
               'Ticket printing via Bluetooth',
               'Product management with barcode and weight',
             ].map(f => (
-              <li key={f} className="flex items-center gap-3 text-sm text-blue-100">
+              <li key={f} className="flex items-center gap-3 text-[13.5px] text-[#f9efe8]/85">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
@@ -85,32 +79,28 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-xs text-blue-400">© 2026 Excellentia · OMS Platform</p>
+        <p className="relative font-mono text-[11.5px] text-[#f9efe8]/40 tracking-[.04em]">https://app.excellentiafoods.com/</p>
       </div>
 
       {/* ── Panel derecho — formulario ────────────────── */}
-      <div className="flex flex-1 flex-col items-center justify-center bg-slate-50 px-6 py-12">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
 
         {/* Mobile logo (mobile only) */}
         <div className="mb-8 text-center lg:hidden">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-zinc-900">Excellentia</h1>
+          <img src="/brand/excellentia-mark.png" alt="Excellentia Foods" className="mx-auto mb-3 h-12 w-12" />
+          <h1 className="text-xl font-extrabold text-[var(--ec-ink)]">Excellentia</h1>
         </div>
 
         <div className="w-full max-w-[360px]">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-zinc-900">{t('login_title')}</h2>
-            <p className="mt-1 text-sm text-slate-500">{t('login_subtitle')}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.2em] text-[var(--ec-faint)]">Sign in</p>
+            <h2 className="mt-2 text-[29px] font-extrabold tracking-[-.02em] text-[var(--ec-ink)]">{t('login_title')}</h2>
+            <p className="mt-2 text-[13.5px] text-[var(--ec-muted)]">{t('login_subtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="flex items-center gap-2.5 rounded border border-[var(--ec-danger)]/30 bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="8" x2="12" y2="12"/>
@@ -120,23 +110,23 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700">
-                {t('login_email')}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11.5px] font-bold tracking-[.1em] text-[#5A5049]">
+                {t('login_email').toUpperCase()}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-slate-400 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3.5 py-3 text-sm text-[var(--ec-ink)] placeholder-[var(--ec-faint)] transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 required
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-700">
-                {t('login_password')}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11.5px] font-bold tracking-[.1em] text-[#5A5049]">
+                {t('login_password').toUpperCase()}
               </label>
               <div className="relative">
                 <input
@@ -144,13 +134,13 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 pr-11 text-sm text-zinc-900 placeholder-slate-400 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3.5 py-3 pr-11 text-sm text-[var(--ec-ink)] placeholder-[var(--ec-faint)] transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-zinc-600 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ec-faint)] hover:text-[var(--ec-ink)] transition"
                   tabIndex={-1}
                 >
                   {showPw ? (
@@ -172,7 +162,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="relative w-full overflow-hidden rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.99] disabled:opacity-60"
+              className="relative w-full overflow-hidden rounded bg-primary px-4 py-3.5 text-[14px] font-extrabold tracking-[.04em] text-[#f9efe8] transition hover:bg-primary-dark active:scale-[0.99] disabled:opacity-60"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -182,11 +172,15 @@ export default function LoginPage() {
                   </svg>
                   {t('login_loading')}
                 </span>
-              ) : t('login_submit')}
+              ) : t('login_submit').toUpperCase()}
             </button>
+
+            <div className="border-t border-[var(--ec-border)] pt-4 text-[11.5px] leading-[1.65] text-[var(--ec-faint)]">
+              Roles resolve server-side. Operators land on a reduced navigation set with no access to Credits.
+            </div>
           </form>
 
-          <p className="mt-8 text-center text-xs text-slate-400">
+          <p className="mt-8 text-center text-xs text-[var(--ec-faint)]">
             Excellentia OMS · {t('login_footer')}
           </p>
         </div>
