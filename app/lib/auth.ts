@@ -4,7 +4,7 @@ export interface CurrentUser {
   id: number
   email: string
   name?: string | null
-  role: 'admin' | 'operator'
+  role: 'admin' | 'operator' | 'almacenista'
 }
 
 export function getUserInfo(): CurrentUser | null {

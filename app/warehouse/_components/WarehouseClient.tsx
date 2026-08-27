@@ -1,0 +1,413 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import type { RouteRow } from '../page'
+import { apiFetch, logout } from '@/app/lib/auth'
+import { useLang } from '@/app/_components/LangProvider'
+import RouteModal from './RouteModal'
+import StopPickerModal from './StopPickerModal'
+import ConfirmModal from './ConfirmModal'
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+interface Driver {
+  id: number
+  name: string
+}
+
+interface Stop {
+  id: number
+  route_id: number
+  position: number
+  stop_type: 'BATCH' | 'PRE_ORDER'
+  batch_id: string | null
+  pre_order_id: number | null
+  customer_id: string | null
+  customer_name: string | null
+  status: string
+  batch?: { batch_id: string; total: number; status: string; item_count: number; qb_invoice_id: string | null } | null
+  preOrder?: { id: number; status: string; scheduled_date: string | null } | null
+}
+
+interface RouteDetail extends RouteRow {
+  stops: Stop[]
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  PLANNED:     'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]',
+  IN_PROGRESS: 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+  COMPLETED:   'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+  CANCELLED:   'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
+}
+
+// Espeja canTransitionStatus() del backend (routeController.ts) — forward-only,
+// sin retroceder, CANCELLED es terminal y no se puede cancelar una ruta ya
+// COMPLETED. Se repite acá solo para decidir qué opciones mostrar en el
+// <select> (UX) — el backend es quien realmente lo hace cumplir.
+function nextStatusOptions(current: string): string[] {
+  if (current === 'PLANNED') return ['PLANNED', 'IN_PROGRESS']
+  if (current === 'IN_PROGRESS') return ['IN_PROGRESS', 'COMPLETED']
+  return [current]
+}
+
+interface Props {
+  initialRoutes: RouteRow[]
+  fetchError: string
+}
+
+export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
+  const { t } = useLang()
+  const [routes, setRoutes] = useState<RouteRow[]>(initialRoutes)
+  const [error, setError] = useState(fetchError)
+  const [dateFilter, setDateFilter] = useState('')
+
+  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [detail, setDetail] = useState<RouteDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const [showCreate, setShowCreate] = useState(false)
+  const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null)
+  const [showStopPicker, setShowStopPicker] = useState(false)
+
+  const [pendingStatus, setPendingStatus] = useState<{ routeId: number; newStatus: string } | null>(null)
+  const [pendingCancelId, setPendingCancelId] = useState<number | null>(null)
+  const [confirmingStatus, setConfirmingStatus] = useState(false)
+
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
+
+  function flash(text: string, ok: boolean) {
+    setMsg({ text, ok })
+    setTimeout(() => setMsg(null), 4000)
+  }
+
+  const fetchRoutes = useCallback((date?: string) => {
+    const url = date ? `${API}/api/routes?date=${date}` : `${API}/api/routes`
+    apiFetch(url)
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => { if (data) setRoutes(data.data ?? []) })
+      .catch(() => setError('Could not connect to the server'))
+  }, [])
+
+  useEffect(() => {
+    apiFetch(`${API}/api/users/salespersons`)
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => setDrivers((data.data ?? []).filter((u: any) => u.role === 'operator')))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { fetchRoutes(dateFilter || undefined) }, [dateFilter, fetchRoutes])
+
+  const loadDetail = useCallback((id: number) => {
+    setDetailLoading(true)
+    apiFetch(`${API}/api/routes/${id}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => setDetail(data.data))
+      .catch(() => flash('Error loading route', false))
+      .finally(() => setDetailLoading(false))
+  }, [])
+
+  function toggleExpand(route: RouteRow) {
+    if (expandedId === route.id) {
+      setExpandedId(null)
+      setDetail(null)
+      return
+    }
+    setExpandedId(route.id)
+    setDetail(null)
+    loadDetail(route.id)
+  }
+
+  function refreshAll(id: number) {
+    fetchRoutes(dateFilter || undefined)
+    loadDetail(id)
+  }
+
+  async function moveStop(stop: Stop, direction: -1 | 1) {
+    if (!detail) return
+    const stops = [...detail.stops].sort((a, b) => a.position - b.position)
+    const idx = stops.findIndex(s => s.id === stop.id)
+    const swapIdx = idx + direction
+    if (swapIdx < 0 || swapIdx >= stops.length) return
+    ;[stops[idx], stops[swapIdx]] = [stops[swapIdx], stops[idx]]
+    const stopIds = stops.map(s => s.id)
+    try {
+      const res = await apiFetch(`${API}/api/routes/${detail.id}/stops/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stop_ids: stopIds }),
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      loadDetail(detail.id)
+    } catch {
+      flash('Error reordering', false)
+    }
+  }
+
+  async function removeStop(stop: Stop) {
+    if (!detail) return
+    try {
+      const res = await apiFetch(`${API}/api/routes/${detail.id}/stops/${stop.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      refreshAll(detail.id)
+    } catch {
+      flash('Error removing stop', false)
+    }
+  }
+
+  async function confirmStatusChange() {
+    if (!pendingStatus) return
+    setConfirmingStatus(true)
+    try {
+      const res = await apiFetch(`${API}/api/routes/${pendingStatus.routeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: pendingStatus.newStatus }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Error ${res.status}`)
+      }
+      refreshAll(pendingStatus.routeId)
+      fetchRoutes(dateFilter || undefined)
+      setPendingStatus(null)
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Error updating status', false)
+    } finally {
+      setConfirmingStatus(false)
+    }
+  }
+
+  async function confirmCancel() {
+    if (pendingCancelId == null) return
+    const routeId = pendingCancelId
+    setConfirmingStatus(true)
+    try {
+      const res = await apiFetch(`${API}/api/routes/${routeId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Error ${res.status}`)
+      }
+      flash(t('wh_cancelRoute'), true)
+      fetchRoutes(dateFilter || undefined)
+      if (expandedId === routeId) refreshAll(routeId)
+      setPendingCancelId(null)
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Error cancelling route', false)
+    } finally {
+      setConfirmingStatus(false)
+    }
+  }
+
+  return (
+    <>
+      {showCreate && (
+        <RouteModal
+          route={null}
+          drivers={drivers}
+          onClose={() => setShowCreate(false)}
+          onSaved={() => { setShowCreate(false); flash(t('wh_createRoute'), true); fetchRoutes(dateFilter || undefined) }}
+        />
+      )}
+      {editingRoute && (
+        <RouteModal
+          route={editingRoute}
+          drivers={drivers}
+          onClose={() => setEditingRoute(null)}
+          onSaved={() => { const id = editingRoute.id; setEditingRoute(null); fetchRoutes(dateFilter || undefined); if (expandedId === id) loadDetail(id) }}
+        />
+      )}
+      {showStopPicker && detail && (
+        <StopPickerModal
+          routeId={detail.id}
+          defaultDate={detail.scheduled_date}
+          onClose={() => setShowStopPicker(false)}
+          onAdded={() => refreshAll(detail.id)}
+        />
+      )}
+      {pendingStatus && (
+        <ConfirmModal
+          title={t('wh_confirmStatusTitle')}
+          body={`${t('wh_confirmStatusBody')} "${t(`wh_status_${pendingStatus.newStatus}` as any)}"?`}
+          confirming={confirmingStatus}
+          onConfirm={confirmStatusChange}
+          onCancel={() => setPendingStatus(null)}
+        />
+      )}
+      {pendingCancelId != null && (
+        <ConfirmModal
+          title={t('wh_confirmCancelTitle')}
+          body={t('wh_confirmCancelBody')}
+          confirming={confirmingStatus}
+          onConfirm={confirmCancel}
+          onCancel={() => setPendingCancelId(null)}
+        />
+      )}
+
+      <div>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-[26px] sm:text-[31px] font-extrabold tracking-[-.028em] text-[var(--ec-ink)]">{t('wh_title')}</h1>
+            <p className="mt-1.5 text-sm text-[var(--ec-muted)]">{routes.length} {t('wh_subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+              title={t('wh_filterDate')}
+              className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50" />
+            {dateFilter && (
+              <button onClick={() => setDateFilter('')} className="text-xs font-semibold text-[var(--ec-muted)] hover:text-[var(--ec-ink)]">
+                {t('wh_allDates')}
+              </button>
+            )}
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 rounded bg-[var(--ec-gold)] px-5 py-2.5 text-sm font-extrabold text-primary active:scale-[0.98] transition"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              {t('wh_newRoute')}
+            </button>
+          </div>
+        </div>
+
+        {msg && (
+          <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${msg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
+            {msg.text}
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-3 text-sm text-[var(--ec-danger)]">{error}</div>
+        )}
+
+        {routes.length === 0 && !error ? (
+          <div className="rounded-md border border-[var(--ec-border)] bg-white px-4 py-12 text-center text-sm text-[var(--ec-faint)]">
+            {t('wh_noRoutes')}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {routes.map(route => {
+              const expanded = expandedId === route.id
+              return (
+                <div key={route.id} className="overflow-hidden rounded-md border border-[var(--ec-border)] bg-white">
+                  <button onClick={() => toggleExpand(route)} className="flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left hover:bg-[var(--ec-surface-alt)]/60 transition">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5">
+                        <p className="truncate text-sm font-bold text-[var(--ec-ink)]">{route.name}</p>
+                        <span className={`inline-block rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${STATUS_BADGE[route.status]}`}>
+                          {t(`wh_status_${route.status}` as any)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-[var(--ec-muted)]">
+                        {route.scheduled_date?.slice(0, 10)} · {route.driver_name ?? t('wh_noDriver')} · {route.stop_count} {t('wh_stops').toLowerCase()}
+                      </p>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      className={`shrink-0 text-[var(--ec-faint)] transition-transform ${expanded ? 'rotate-180' : ''}`}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+
+                  {expanded && (
+                    <div className="border-t border-[var(--ec-border)] bg-[var(--ec-surface-alt)]/40 px-4 py-4">
+                      {detailLoading || !detail ? (
+                        <p className="py-6 text-center text-sm text-[var(--ec-faint)]">…</p>
+                      ) : (
+                        <>
+                          {detail.status === 'CANCELLED' ? (
+                            <div className="mb-4 flex items-center gap-2 rounded border border-[var(--ec-danger)]/25 bg-[var(--ec-danger-bg)] px-3 py-2.5 text-xs font-semibold text-[var(--ec-danger)]">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                              {t('wh_locked')}
+                            </div>
+                          ) : (
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={detail.status}
+                                  onChange={e => setPendingStatus({ routeId: detail.id, newStatus: e.target.value })}
+                                  className="rounded border border-[var(--ec-border-strong)] bg-white px-2.5 py-1.5 text-xs font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
+                                >
+                                  {nextStatusOptions(detail.status).map(s => (
+                                    <option key={s} value={s}>{t(`wh_status_${s}` as any)}</option>
+                                  ))}
+                                </select>
+                                <button onClick={() => setEditingRoute(route)}
+                                  className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
+                                  {t('common_edit')}
+                                </button>
+                                <button onClick={() => setPendingCancelId(route.id)}
+                                  className="rounded border border-[var(--ec-danger)]/30 bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
+                                  {t('wh_cancelRoute')}
+                                </button>
+                              </div>
+                              <button onClick={() => setShowStopPicker(true)}
+                                className="flex items-center gap-1.5 rounded bg-primary px-3.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-primary-dark active:scale-[0.98] transition">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                {t('wh_addStop')}
+                              </button>
+                            </div>
+                          )}
+
+                          {detail.notes && (
+                            <p className="mb-3 rounded border border-[var(--ec-border)] bg-white px-3 py-2 text-xs text-[var(--ec-muted)]">{detail.notes}</p>
+                          )}
+
+                          {detail.stops.length === 0 ? (
+                            <p className="py-6 text-center text-sm text-[var(--ec-faint)]">{t('wh_noStops')}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {[...detail.stops].sort((a, b) => a.position - b.position).map((stop, i, arr) => (
+                                <div key={stop.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[11px] font-extrabold text-[var(--ec-muted)]">
+                                    {i + 1}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{stop.customer_name ?? '—'}</p>
+                                    <p className="text-xs text-[var(--ec-faint)]">
+                                      {stop.stop_type === 'BATCH' ? t('wh_order') : t('wh_preorder')}
+                                      {stop.batch && ` · $${Number(stop.batch.total).toFixed(2)}`}
+                                      {stop.preOrder && ` · #${stop.preOrder.id}`}
+                                    </p>
+                                  </div>
+                                  {detail.status !== 'CANCELLED' && (
+                                    <div className="flex shrink-0 items-center gap-1">
+                                      <button disabled={i === 0} onClick={() => moveStop(stop, -1)} title={t('wh_moveUp')}
+                                        className="rounded p-1.5 text-[var(--ec-muted)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-30 transition">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                      </button>
+                                      <button disabled={i === arr.length - 1} onClick={() => moveStop(stop, 1)} title={t('wh_moveDown')}
+                                        className="rounded p-1.5 text-[var(--ec-muted)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-30 transition">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                      </button>
+                                      <button onClick={() => removeStop(stop)} title={t('wh_removeStop')}
+                                        className="rounded p-1.5 text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}

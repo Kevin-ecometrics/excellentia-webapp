@@ -8,7 +8,7 @@ export interface UserRow {
   id: number
   email: string
   name: string | null
-  role: 'admin' | 'operator'
+  role: 'admin' | 'operator' | 'almacenista'
   qb_class_id: string | null
   created_at: string
 }

@@ -17,7 +17,7 @@ interface EditState {
   id: number
   email: string
   name: string
-  role: 'operator' | 'admin'
+  role: 'operator' | 'admin' | 'almacenista'
   password: string
   qbClassId: string
 }
@@ -28,8 +28,15 @@ interface QbClass {
 }
 
 const roleBadge: Record<string, string> = {
-  admin:    'bg-primary-50 text-primary',
-  operator: 'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]',
+  admin:       'bg-primary-50 text-primary',
+  operator:    'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]',
+  almacenista: 'bg-amber-100 text-amber-700',
+}
+
+function roleLabel(role: string, t: (key: any) => string): string {
+  if (role === 'admin') return t('usr_admin')
+  if (role === 'almacenista') return t('usr_almacenista')
+  return t('usr_operator')
 }
 
 function fmtDate(iso: string) {
@@ -80,7 +87,7 @@ function DeleteModal({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{user.email}</p>
-              <p className="text-xs text-[var(--ec-faint)]">{user.role === 'admin' ? t('usr_admin') : t('usr_operator')} · {fmtDate(user.created_at)}</p>
+              <p className="text-xs text-[var(--ec-faint)]">{roleLabel(user.role, t)} · {fmtDate(user.created_at)}</p>
             </div>
           </div>
           <p className="mt-4 text-xs text-[var(--ec-faint)]">{t('usr_delNote')}</p>
@@ -126,7 +133,7 @@ export default function UsersClient({ users, fetchError }: Props) {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
-  const [role, setRole]         = useState<'operator' | 'admin'>('operator')
+  const [role, setRole]         = useState<'operator' | 'admin' | 'almacenista'>('operator')
   const [qbClassId, setQbClassId] = useState('')
   const [creating, setCreating] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -349,10 +356,11 @@ export default function UsersClient({ users, fetchError }: Props) {
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_role')}</label>
                 <select
-                  value={role} onChange={e => setRole(e.target.value as 'operator' | 'admin')}
+                  value={role} onChange={e => setRole(e.target.value as 'operator' | 'admin' | 'almacenista')}
                   className="w-full rounded border border-[var(--ec-border-strong)] bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                 >
                   <option value="operator">{t('usr_operator')}</option>
+                  <option value="almacenista">{t('usr_almacenista')}</option>
                   <option value="admin">{t('usr_admin')}</option>
                 </select>
               </div>
@@ -411,7 +419,7 @@ export default function UsersClient({ users, fetchError }: Props) {
                     <td className="px-4 py-3 text-sm text-[var(--ec-muted)]">{u.email}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded px-2.5 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${roleBadge[u.role] ?? 'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]'}`}>
-                        {u.role === 'admin' ? t('usr_admin') : t('usr_operator')}
+                        {roleLabel(u.role, t)}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-[11px] text-[var(--ec-muted)]">
@@ -472,10 +480,11 @@ export default function UsersClient({ users, fetchError }: Props) {
                               <label className="mb-1 block text-xs font-medium text-[var(--ec-muted)]">{t('usr_role')}</label>
                               <select
                                 value={editing.role}
-                                onChange={e => setEditing({ ...editing, role: e.target.value as 'operator' | 'admin' })}
+                                onChange={e => setEditing({ ...editing, role: e.target.value as 'operator' | 'admin' | 'almacenista' })}
                                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
                               >
                                 <option value="operator">{t('usr_operator')}</option>
+                                <option value="almacenista">{t('usr_almacenista')}</option>
                                 <option value="admin">{t('usr_admin')}</option>
                               </select>
                             </div>
