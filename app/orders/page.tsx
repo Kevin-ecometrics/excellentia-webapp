@@ -35,7 +35,6 @@ export interface CompanyInfo {
   address: string | null
   phone: string | null
   city: string | null
-  disclaimer: string | null
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -44,7 +43,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([])
   const [fetchError, setFetchError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
-  const [company, setCompany] = useState<CompanyInfo>({ company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null, disclaimer: null })
+  const [company, setCompany] = useState<CompanyInfo>({ company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null })
   const [ready, setReady] = useState(false)
 
   useEffect(() => {

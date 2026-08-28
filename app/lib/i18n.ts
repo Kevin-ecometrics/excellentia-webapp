@@ -419,6 +419,9 @@ export const translations = {
     wh_confirmCancelBody:  'Una vez cancelada, la ruta queda bloqueada: no se va a poder editar, cambiar de estado ni modificar sus paradas. ¿Confirmás?',
     wh_confirm:       'Confirmar',
     wh_locked:        'Ruta cancelada — ya no se puede modificar.',
+    wh_lockedCompleted: 'Ruta completada — ya no se puede editar ni cancelar.',
+    wh_loaded:        'Cargado',
+    wh_noItems:       'Sin productos cargados todavía',
   },
 
   en: {
@@ -839,6 +842,9 @@ export const translations = {
     wh_confirmCancelBody:  'Once cancelled, the route is locked: it can no longer be edited, change status, or have its stops modified. Confirm?',
     wh_confirm:       'Confirm',
     wh_locked:        'Route cancelled — it can no longer be modified.',
+    wh_lockedCompleted: 'Route completed — it can no longer be edited or cancelled.',
+    wh_loaded:        'Loaded',
+    wh_noItems:       'No products loaded yet',
   },
 } as const
 

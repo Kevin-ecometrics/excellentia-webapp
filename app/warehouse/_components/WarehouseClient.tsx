@@ -5,7 +5,6 @@ import type { RouteRow } from '../page'
 import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 import RouteModal from './RouteModal'
-import StopPickerModal from './StopPickerModal'
 import ConfirmModal from './ConfirmModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -19,7 +18,7 @@ interface Stop {
   id: number
   route_id: number
   position: number
-  stop_type: 'BATCH' | 'PRE_ORDER'
+  stop_type: 'BATCH' | 'PRE_ORDER' | 'CUSTOMER'
   batch_id: string | null
   pre_order_id: number | null
   customer_id: string | null
@@ -29,8 +28,20 @@ interface Stop {
   preOrder?: { id: number; status: string; scheduled_date: string | null } | null
 }
 
+interface RouteItem {
+  id: number
+  route_id: number
+  product_id: number
+  barcode: string | null
+  quantity: number
+  name: string
+  sku: string | null
+  unit: string | null
+}
+
 interface RouteDetail extends RouteRow {
   stops: Stop[]
+  items: RouteItem[]
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -43,7 +54,9 @@ const STATUS_BADGE: Record<string, string> = {
 // Espeja canTransitionStatus() del backend (routeController.ts) — forward-only,
 // sin retroceder, CANCELLED es terminal y no se puede cancelar una ruta ya
 // COMPLETED. Se repite acá solo para decidir qué opciones mostrar en el
-// <select> (UX) — el backend es quien realmente lo hace cumplir.
+// <select> (UX) — el backend es quien realmente lo hace cumplir. La webapp ya
+// no arma la ruta (eso es de la app Android) pero conserva este selector como
+// override de emergencia, igual que "Cancelar ruta".
 function nextStatusOptions(current: string): string[] {
   if (current === 'PLANNED') return ['PLANNED', 'IN_PROGRESS']
   if (current === 'IN_PROGRESS') return ['IN_PROGRESS', 'COMPLETED']
@@ -66,9 +79,7 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   const [detail, setDetail] = useState<RouteDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  const [showCreate, setShowCreate] = useState(false)
   const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null)
-  const [showStopPicker, setShowStopPicker] = useState(false)
 
   const [pendingStatus, setPendingStatus] = useState<{ routeId: number; newStatus: string } | null>(null)
   const [pendingCancelId, setPendingCancelId] = useState<number | null>(null)
@@ -96,7 +107,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   useEffect(() => {
     apiFetch(`${API}/api/users/salespersons`)
       .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => setDrivers((data.data ?? []).filter((u: any) => u.role === 'operator')))
+      // Por ahora se incluye también admin (temporal, a pedido del usuario).
+      .then(data => setDrivers((data.data ?? []).filter((u: any) => u.role === 'operator' || u.role === 'admin')))
       .catch(() => {})
   }, [])
 
@@ -128,38 +140,6 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   function refreshAll(id: number) {
     fetchRoutes(dateFilter || undefined)
     loadDetail(id)
-  }
-
-  async function moveStop(stop: Stop, direction: -1 | 1) {
-    if (!detail) return
-    const stops = [...detail.stops].sort((a, b) => a.position - b.position)
-    const idx = stops.findIndex(s => s.id === stop.id)
-    const swapIdx = idx + direction
-    if (swapIdx < 0 || swapIdx >= stops.length) return
-    ;[stops[idx], stops[swapIdx]] = [stops[swapIdx], stops[idx]]
-    const stopIds = stops.map(s => s.id)
-    try {
-      const res = await apiFetch(`${API}/api/routes/${detail.id}/stops/reorder`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stop_ids: stopIds }),
-      })
-      if (!res.ok) throw new Error(`Error ${res.status}`)
-      loadDetail(detail.id)
-    } catch {
-      flash('Error reordering', false)
-    }
-  }
-
-  async function removeStop(stop: Stop) {
-    if (!detail) return
-    try {
-      const res = await apiFetch(`${API}/api/routes/${detail.id}/stops/${stop.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`Error ${res.status}`)
-      refreshAll(detail.id)
-    } catch {
-      flash('Error removing stop', false)
-    }
   }
 
   async function confirmStatusChange() {
@@ -208,28 +188,12 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
 
   return (
     <>
-      {showCreate && (
-        <RouteModal
-          route={null}
-          drivers={drivers}
-          onClose={() => setShowCreate(false)}
-          onSaved={() => { setShowCreate(false); flash(t('wh_createRoute'), true); fetchRoutes(dateFilter || undefined) }}
-        />
-      )}
       {editingRoute && (
         <RouteModal
           route={editingRoute}
           drivers={drivers}
           onClose={() => setEditingRoute(null)}
           onSaved={() => { const id = editingRoute.id; setEditingRoute(null); fetchRoutes(dateFilter || undefined); if (expandedId === id) loadDetail(id) }}
-        />
-      )}
-      {showStopPicker && detail && (
-        <StopPickerModal
-          routeId={detail.id}
-          defaultDate={detail.scheduled_date}
-          onClose={() => setShowStopPicker(false)}
-          onAdded={() => refreshAll(detail.id)}
         />
       )}
       {pendingStatus && (
@@ -266,15 +230,6 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                 {t('wh_allDates')}
               </button>
             )}
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 rounded bg-[var(--ec-gold)] px-5 py-2.5 text-sm font-extrabold text-primary active:scale-[0.98] transition"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              {t('wh_newRoute')}
-            </button>
           </div>
         </div>
 
@@ -321,10 +276,10 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                         <p className="py-6 text-center text-sm text-[var(--ec-faint)]">…</p>
                       ) : (
                         <>
-                          {detail.status === 'CANCELLED' ? (
+                          {detail.status === 'CANCELLED' || detail.status === 'COMPLETED' ? (
                             <div className="mb-4 flex items-center gap-2 rounded border border-[var(--ec-danger)]/25 bg-[var(--ec-danger-bg)] px-3 py-2.5 text-xs font-semibold text-[var(--ec-danger)]">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                              {t('wh_locked')}
+                              {detail.status === 'CANCELLED' ? t('wh_locked') : t('wh_lockedCompleted')}
                             </div>
                           ) : (
                             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -347,13 +302,6 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   {t('wh_cancelRoute')}
                                 </button>
                               </div>
-                              <button onClick={() => setShowStopPicker(true)}
-                                className="flex items-center gap-1.5 rounded bg-primary px-3.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-primary-dark active:scale-[0.98] transition">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                </svg>
-                                {t('wh_addStop')}
-                              </button>
                             </div>
                           )}
 
@@ -361,11 +309,12 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                             <p className="mb-3 rounded border border-[var(--ec-border)] bg-white px-3 py-2 text-xs text-[var(--ec-muted)]">{detail.notes}</p>
                           )}
 
+                          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_stops')}</p>
                           {detail.stops.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-[var(--ec-faint)]">{t('wh_noStops')}</p>
+                            <p className="pb-4 text-sm text-[var(--ec-faint)]">{t('wh_noStops')}</p>
                           ) : (
-                            <div className="space-y-2">
-                              {[...detail.stops].sort((a, b) => a.position - b.position).map((stop, i, arr) => (
+                            <div className="mb-4 space-y-2">
+                              {[...detail.stops].sort((a, b) => a.position - b.position).map((stop, i) => (
                                 <div key={stop.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
                                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[11px] font-extrabold text-[var(--ec-muted)]">
                                     {i + 1}
@@ -373,27 +322,32 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{stop.customer_name ?? '—'}</p>
                                     <p className="text-xs text-[var(--ec-faint)]">
-                                      {stop.stop_type === 'BATCH' ? t('wh_order') : t('wh_preorder')}
+                                      {stop.stop_type === 'BATCH' ? t('wh_order') : stop.stop_type === 'PRE_ORDER' ? t('wh_preorder') : t('wh_customer')}
                                       {stop.batch && ` · $${Number(stop.batch.total).toFixed(2)}`}
                                       {stop.preOrder && ` · #${stop.preOrder.id}`}
                                     </p>
                                   </div>
-                                  {detail.status !== 'CANCELLED' && (
-                                    <div className="flex shrink-0 items-center gap-1">
-                                      <button disabled={i === 0} onClick={() => moveStop(stop, -1)} title={t('wh_moveUp')}
-                                        className="rounded p-1.5 text-[var(--ec-muted)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-30 transition">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                                      </button>
-                                      <button disabled={i === arr.length - 1} onClick={() => moveStop(stop, 1)} title={t('wh_moveDown')}
-                                        className="rounded p-1.5 text-[var(--ec-muted)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-30 transition">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                                      </button>
-                                      <button onClick={() => removeStop(stop)} title={t('wh_removeStop')}
-                                        className="rounded p-1.5 text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                      </button>
-                                    </div>
-                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_loaded')}</p>
+                          {detail.items.length === 0 ? (
+                            <p className="text-sm text-[var(--ec-faint)]">{t('wh_noItems')}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {detail.items.map(item => (
+                                <div key={item.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{item.name}</p>
+                                    <p className="text-xs text-[var(--ec-faint)]">
+                                      {item.sku ?? item.barcode ?? '—'}{item.unit && ` · ${item.unit}`}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 rounded bg-[var(--ec-surface-alt)] px-2.5 py-1 text-xs font-extrabold text-[var(--ec-ink)]">
+                                    {item.quantity}
+                                  </span>
                                 </div>
                               ))}
                             </div>
