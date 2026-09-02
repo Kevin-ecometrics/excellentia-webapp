@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import type { RouteRow } from '../page'
-import { apiFetch, logout } from '@/app/lib/auth'
+import { apiFetch, logout, getUserInfo } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 import RouteModal from './RouteModal'
 import ConfirmModal from './ConfirmModal'
@@ -44,6 +45,26 @@ interface RouteDetail extends RouteRow {
   items: RouteItem[]
 }
 
+// Fase 112 — lo que el almacén cuenta al volver la ruta (route_returns). Se
+// carga aparte de RouteDetail porque GET /api/routes/:id no lo incluye.
+interface RouteReturn {
+  id: number
+  route_id: number
+  product_id: number
+  quantity: number
+  condition_status: 'GOOD' | 'DAMAGED' | 'EXPIRED'
+  notes: string | null
+  reviewed_at: string
+  name: string
+  sku: string | null
+}
+
+const RETURN_CONDITION_BADGE: Record<string, string> = {
+  GOOD:    'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+  DAMAGED: 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
+  EXPIRED: 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+}
+
 const STATUS_BADGE: Record<string, string> = {
   PLANNED:     'bg-[var(--ec-surface-alt)] text-[var(--ec-muted)]',
   IN_PROGRESS: 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
@@ -78,6 +99,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [detail, setDetail] = useState<RouteDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [returns, setReturns] = useState<RouteReturn[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null)
 
@@ -105,6 +128,10 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   }, [])
 
   useEffect(() => {
+    setIsAdmin(getUserInfo()?.role === 'admin')
+  }, [])
+
+  useEffect(() => {
     apiFetch(`${API}/api/users/salespersons`)
       .then(res => res.ok ? res.json() : { data: [] })
       // Por ahora se incluye también admin (temporal, a pedido del usuario).
@@ -124,16 +151,26 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
       .then(data => setDetail(data.data))
       .catch(() => flash('Error loading route', false))
       .finally(() => setDetailLoading(false))
+
+    // Devoluciones — endpoint aparte (route_returns no viene en GET /routes/:id).
+    // Solo tiene datos una vez que la ruta está COMPLETED, pero no hace daño
+    // pedirlo siempre: si no hay nada, el array queda vacío.
+    apiFetch(`${API}/api/routes/${id}/returns`)
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => setReturns(data.data ?? []))
+      .catch(() => setReturns([]))
   }, [])
 
   function toggleExpand(route: RouteRow) {
     if (expandedId === route.id) {
       setExpandedId(null)
       setDetail(null)
+      setReturns([])
       return
     }
     setExpandedId(route.id)
     setDetail(null)
+    setReturns([])
     loadDetail(route.id)
   }
 
@@ -230,6 +267,15 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                 {t('wh_allDates')}
               </button>
             )}
+            {/* Liquidación diaria — admin-only, a pedido del usuario (el
+                almacenista arma/carga rutas y revisa devoluciones, pero el
+                cierre a QBO lo hace el admin acá, no en la app). */}
+            {isAdmin && (
+              <Link href="/warehouse/settlement"
+                className="rounded bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-dark transition">
+                {t('wh_settlementNav')}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -259,6 +305,14 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                         <span className={`inline-block rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${STATUS_BADGE[route.status]}`}>
                           {t(`wh_status_${route.status}` as any)}
                         </span>
+                        {/* Fase 112 (2026-08-31) — aviso para el admin: no
+                            asumir "nada volvió" solo porque no hay filas en
+                            route_returns, capaz el almacén todavía no la revisó. */}
+                        {route.status === 'COMPLETED' && !route.returns_reviewed_at && (
+                          <span className="inline-block rounded bg-[var(--ec-warn-bg)] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase text-[var(--ec-warn-ink)]">
+                            {t('wh_returnsNotReviewed')}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs text-[var(--ec-muted)]">
                         {route.scheduled_date?.slice(0, 10)} · {route.driver_name ?? t('wh_noDriver')} · {route.stop_count} {t('wh_stops').toLowerCase()}
@@ -347,6 +401,38 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   </div>
                                   <span className="shrink-0 rounded bg-[var(--ec-surface-alt)] px-2.5 py-1 text-xs font-extrabold text-[var(--ec-ink)]">
                                     {item.quantity}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Fase 112 — lo que el almacén contó al volver la
+                              ruta: cantidad real + condición por producto.
+                              returns_reviewed_at (2026-08-31) distingue "no
+                              revisado todavía" de "revisado, nada volvió" —
+                              antes ambos casos se veían idénticos (lista vacía). */}
+                          <p className="mt-4 mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_returns')}</p>
+                          {!detail.returns_reviewed_at ? (
+                            <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ec-warn-ink)]">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                              {t('wh_returnsNotReviewed')}
+                            </p>
+                          ) : returns.length === 0 ? (
+                            <p className="text-sm text-[var(--ec-faint)]">{t('wh_noReturns')}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {returns.map(r => (
+                                <div key={r.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{r.name}</p>
+                                    {r.notes && <p className="text-xs text-[var(--ec-faint)]">{r.notes}</p>}
+                                  </div>
+                                  <span className={`shrink-0 rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.08em] uppercase ${RETURN_CONDITION_BADGE[r.condition_status]}`}>
+                                    {t(`wh_returnCondition_${r.condition_status}` as any)}
+                                  </span>
+                                  <span className="shrink-0 rounded bg-[var(--ec-surface-alt)] px-2.5 py-1 text-xs font-extrabold text-[var(--ec-ink)]">
+                                    {r.quantity}
                                   </span>
                                 </div>
                               ))}

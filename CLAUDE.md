@@ -211,8 +211,112 @@ Card "Invoice numbering" en `app/settings/_components/SettingsClient.tsx`, visib
 
 ---
 
+## Variables de entorno — `.env` vs `.env.development` (no usar `.env.local`)
+
+**`.env.local` tiene más prioridad que `.env` en Next.js, y se carga tanto en
+`next dev` como en `next build`** — si existe con la URL de desarrollo
+(`http://localhost:3000`), un build de producción corrido en la misma máquina
+la va a usar en vez de la de `.env`, sin ningún aviso. Como el deploy acá es
+manual (`npm run build` local → comprimir `out/` → subir a cPanel, no hay CI),
+ese build roto queda grabado adentro de los archivos estáticos — cualquier
+usuario real ve "Could not connect to the server" porque su navegador intenta
+pegarle a `localhost:3000`, que no existe fuera de la compu del desarrollador.
+
+Pasó exactamente eso el 2026-08-31. **Fix:** se renombró `.env.local` →
+`.env.development` — Next.js solo lo carga cuando `NODE_ENV=development`
+(`next dev`), nunca en `next build` (`NODE_ENV=production`), así que un
+build de producción siempre cae a `.env` (`NEXT_PUBLIC_API_URL=https://app.excellentiafoods.com`)
+sin depender de acordarse de borrar nada antes de generar el build. **No
+volver a crear un `.env.local` en este repo** — usar `.env.development` para
+cualquier override de desarrollo.
+
+## Página Almacén (`/warehouse`) y Liquidación (`/warehouse/settlement`)
+
+Nunca documentada acá pese a existir desde la Fase 111 del backend (ver
+`excellentia/CLAUDE.md` → "Módulo Almacén — rutas, recepción, FIFO,
+sub-inventario y liquidación") — se cierra ese gap de paso, junto con lo
+agregado el 2026-08-31.
+
+### `/warehouse` — rutas de entrega
+
+`app/warehouse/page.tsx` hace el fetch inicial de `GET /api/routes` y
+redirige a `/orders` si `role === 'operator'` — admin y almacenista comparten
+la página. `WarehouseClient.tsx`:
+- Lista de rutas con badge de estado (`STATUS_BADGE`) y filtro por fecha.
+- Fila expandible: paradas (`stops`), manifiesto cargado (`items`) y
+  **Devoluciones** (agregado 2026-08-31, ver abajo).
+- Cambiar estado / cancelar / editar ruta — `nextStatusOptions()` espeja
+  `canTransitionStatus()` del backend solo para decidir qué mostrar en el
+  `<select>` (UX); el backend es quien realmente lo hace cumplir.
+- `RouteModal.tsx` (crear/editar), `StopPickerModal.tsx` (agregar parada),
+  `ConfirmModal.tsx` — genérico (title/body/confirming/onConfirm/onCancel),
+  reusado tal cual por Liquidación en vez de crear un modal nuevo.
+
+**Sección "Devoluciones" (2026-08-31):** al expandir una ruta, trae
+`GET /api/routes/:id/returns` aparte (`GET /api/routes/:id` no lo incluye).
+Tres estados, no dos:
+1. `detail.returns_reviewed_at` es `null` → aviso amarillo "Devoluciones sin
+   revisar" — el almacén todavía no pasó por Android a confirmar esta ruta.
+2. Revisado pero `returns` vacío → "Sin devoluciones registradas todavía" —
+   se vendió todo, y eso está bien.
+3. Revisado con líneas → lista real, badge de condición por color
+   (`RETURN_CONDITION_BADGE`: Buena=verde, Dañada=roja, Vencida=ámbar).
+
+Antes de que `routes` ganara la columna `returns_reviewed_at` (backend), los
+casos 1 y 2 eran indistinguibles — los dos se veían como lista vacía, y no
+había forma de que el admin supiera si de verdad no había nada o si
+simplemente nadie lo revisó todavía. El mismo flag también pinta un **badge
+en la fila colapsada** de la lista (rutas `COMPLETED` sin revisar), para no
+tener que expandir cada una para notarlo.
+
+### `/warehouse/settlement` — Liquidación diaria (admin-only, nueva 2026-08-31)
+
+Diseño completo del backend (`preview`/`confirm`, por qué se difiere solo el
+push a QBO y no el registro local) en `excellentia/CLAUDE.md` → "Módulo
+Almacén". Acá el resumen del lado webapp:
+
+- **Por qué es admin-only:** decisión explícita del usuario, reconsiderada
+  el mismo día — el almacenista arma/carga rutas y revisa devoluciones desde
+  Android, pero el cierre a QBO es tarea del admin, que primero revisa lo
+  que pasó en cada ruta. La pantalla había arrancado como `SettlementActivity`
+  en Android y se **eliminó de ahí por completo** (no quedó como fallback)
+  al mover el flujo acá.
+- `app/warehouse/settlement/page.tsx` — gate `role !== 'admin'` → redirect a
+  `/warehouse`, mismo criterio que `/dashboard`. El backend también gatea
+  con `adminOnly` (antes `warehouseOnly` = admin+almacenista) — protegido en
+  las dos puntas, no solo ocultando el link.
+- `SettlementClient.tsx` — "Generar liquidación de hoy" (`POST
+  .../settlements/preview`, solo arma el borrador, **no** toca QBO) → lista
+  de líneas (producto, neto, stock antes→después) → "Confirmar liquidación"
+  (`POST .../settlements/:id/confirm`, ahí sí empuja `QtyOnHand`) detrás de
+  `ConfirmModal` — el modal anti-miss-click que pidió el usuario.
+- El aviso "sync failed" en una línea solo se pinta si el settlement ya está
+  `CONFIRMED` de verdad (`isConfirmed && !line.qbo_synced`) — un `DRAFT`
+  recién generado trae `qbo_synced=0` por default en toda línea sin que
+  nada haya fallado. Mismo bug encontrado y corregido primero en la versión
+  Android de esta pantalla, antes de que existiera acá (ver
+  `excellentia/PROGRESS.md`, Fix "sync failed").
+- **Banner de advertencia** (no bloqueante) si hay rutas `COMPLETED` con
+  `returns_reviewed_at` nulo — se evaluó bloquear directamente la
+  liquidación en ese caso y se descartó a propósito: sin la marca explícita
+  de revisión no hay forma de que el bloqueo sea preciso (antes, "cero
+  devoluciones" no distinguía "no revisado" de "revisado, nada volvió"), y
+  aun teniéndola el admin puede tener una razón válida para liquidar antes.
+- Acceso: botón "Liquidación" en el header de `/warehouse`, condicionado a
+  `getUserInfo()?.role === 'admin'`.
+
+Claves i18n nuevas: `wh_returns`/`wh_noReturns`/`wh_returnCondition_*`/
+`wh_returnsNotReviewed`/`wh_settlementNav` y toda la sección `wst_*` en
+`app/lib/i18n.ts` (es/en).
+
+`npx next build` (incluye chequeo de TypeScript) verificado limpio —
+`/warehouse/settlement` se genera como página estática más.
+
+---
+
 ## Pendientes / a considerar
 
 - **Aviso de fallo de sync a QBO en `ProductModal.tsx`** — hoy el `PUT /api/products/:id` responde éxito siempre, aunque el push a QBO (`updateItemMeta`/`updateItemQtyOnHand`) haya fallado silenciosamente. El backend va a devolver si ese sync realmente se confirmó contra QBO (parte del fix del bug donde el sync automático de 5 min revertía precios editados recientemente — ver `excellentia/CLAUDE.md`). Falta que el modal lea ese campo y muestre un aviso en vez de cerrar como si todo hubiera salido bien.
 - **Campo `disclaimer` de Settings sin uso real** — ver nota en "Términos y condiciones en el modal Ticket (QR)" más arriba. Decidir si se saca del formulario de Settings o se deja.
 - **`/settings` no redirige a un operador** que entre por URL directa (a diferencia de `/dashboard`, que sí hace `window.location.href = '/orders'` si `role !== 'admin'`) — el backend GET tampoco tiene `adminOnly`. No es grave (solo lee nombre/dirección de la empresa) pero es inconsistente con el resto de páginas admin-only.
+- **Falta el desglose "Vendido" por producto en `/warehouse`** — el admin ve cuánto se cargó y cuánto volvió por producto (sección Devoluciones), pero no cuánto se vendió de cada uno; ese dato ya lo calcula el backend (`GET /api/routes/:id/returns/expected`, el mismo endpoint que usa `RouteReturnsActivity` en Android) pero la webapp todavía no lo consume. Preguntado por el usuario el 2026-08-31, ofrecido pero no implementado todavía.

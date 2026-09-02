@@ -13,6 +13,10 @@ export interface RouteRow {
   status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
   notes: string | null
   stop_count: number
+  // Fase 112 (2026-08-31) — marca explícita de que el almacén ya revisó
+  // devoluciones para esta ruta (null = todavía no, sea que haya algo para
+  // devolver o no). Distingue "no revisado" de "revisado, nada que volvió".
+  returns_reviewed_at: string | null
   created_at: string
   updated_at: string
 }

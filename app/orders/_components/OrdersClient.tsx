@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import type { OrderRow, CompanyInfo } from '../page'
 import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import ConfirmModal from '../../warehouse/_components/ConfirmModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -13,6 +13,7 @@ interface Props {
   fetchError: string
   isAdmin: boolean
   company: CompanyInfo
+  onRefresh: () => void | Promise<void>
 }
 
 interface Batch {
@@ -25,10 +26,14 @@ interface Batch {
   status: string
   createdAt: string
   invoiceId: string | null
+  reservedInvoiceNumber: number | null
   paymentMethod: string | null
   checkNumber: string | null
   creditApplied: number | null
   damageCredits: number
+  routeId: number | null
+  routeName: string | null
+  routeDate: string | null
 }
 
 interface DamageItem {
@@ -168,10 +173,11 @@ function formatOrderQty(o: OrderRow): string {
 }
 
 const statusCls: Record<string, string> = {
-  SENT:      'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
-  PENDING:   'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
-  FAILED:    'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
-  CANCELLED: 'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]',
+  SENT:              'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+  AWAITING_APPROVAL: 'bg-primary-50 text-primary',
+  PENDING:           'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+  FAILED:            'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
+  CANCELLED:         'bg-[var(--ec-surface-alt)] text-[var(--ec-faint)]',
 }
 
 function fmtDate(iso: string) {
@@ -197,6 +203,7 @@ function groupBatches(orders: OrderRow[]): Batch[] {
   return Array.from(map.entries()).map(([batchId, items]) => {
     const allSent = items.every(i => i.status === 'SENT')
     const anyFailed = items.some(i => i.status === 'FAILED')
+    const anyAwaiting = items.some(i => i.status === 'AWAITING_APPROVAL')
     return {
       batchId,
       orders: items,
@@ -204,13 +211,17 @@ function groupBatches(orders: OrderRow[]): Batch[] {
       userEmail: items[0]?.user_email ?? null,
       userName:  items[0]?.user_name  ?? null,
       total: items.reduce((s, i) => s + Number(i.total), 0),
-      status: allSent ? 'SENT' : anyFailed ? 'FAILED' : 'PENDING',
+      status: anyFailed ? 'FAILED' : allSent ? 'SENT' : anyAwaiting ? 'AWAITING_APPROVAL' : 'PENDING',
       createdAt: items[0]?.created_at ?? '',
       invoiceId: items[0]?.qb_invoice_id ?? null,
+      reservedInvoiceNumber: items[0]?.reserved_invoice_number ?? null,
       paymentMethod: items[0]?.payment_method ?? null,
       checkNumber: items[0]?.check_number ?? null,
       creditApplied: Number(items[0]?.credit_applied) || null,
       damageCredits: Number(items[0]?.damage_credits) || 0,
+      routeId: items[0]?.route_id ?? null,
+      routeName: items[0]?.route_name ?? null,
+      routeDate: items[0]?.route_date ?? null,
     }
   })
 }
@@ -223,15 +234,15 @@ function isToday(iso: string) {
     d.getDate() === now.getDate()
 }
 
-export default function OrdersClient({ orders, fetchError, isAdmin, company }: Props) {
-  const router = useRouter()
+export default function OrdersClient({ orders, fetchError, isAdmin, company, onRefresh }: Props) {
   const { t } = useLang()
 
   const statusCfg: Record<string, { label: string; cls: string }> = {
-    SENT:      { label: t('ord_labelSent'),      cls: statusCls.SENT },
-    PENDING:   { label: t('ord_labelPending'),   cls: statusCls.PENDING },
-    FAILED:    { label: t('ord_labelFailed'),    cls: statusCls.FAILED },
-    CANCELLED: { label: t('ord_labelCancelled'), cls: statusCls.CANCELLED },
+    SENT:              { label: t('ord_labelSent'),              cls: statusCls.SENT },
+    AWAITING_APPROVAL: { label: t('ord_labelAwaitingApproval'),  cls: statusCls.AWAITING_APPROVAL },
+    PENDING:           { label: t('ord_labelPending'),            cls: statusCls.PENDING },
+    FAILED:            { label: t('ord_labelFailed'),             cls: statusCls.FAILED },
+    CANCELLED:         { label: t('ord_labelCancelled'),          cls: statusCls.CANCELLED },
   }
 
   const paymentLabel: Record<string, string> = {
@@ -250,6 +261,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
   const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState<string | null>(null)
+  const [reconciling, setReconciling] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [ticketBatch, setTicketBatch] = useState<Batch | null>(null)
@@ -258,6 +270,8 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
   const [expandedDamage, setExpandedDamage] = useState<Map<string, DamageItem[]>>(new Map())
   const [batchSignatures, setBatchSignatures] = useState<Map<string, boolean>>(new Map())
   const [exporting, setExporting] = useState(false)
+  const [approveBatch, setApproveBatch] = useState<Batch | null>(null)
+  const [approving, setApproving] = useState(false)
 
   async function handleExpand(batchId: string) {
     const next = expanded === batchId ? null : batchId
@@ -317,6 +331,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
 
   const counts = useMemo(() => ({
     all: dateFiltered.length,
+    awaiting: dateFiltered.filter(b => b.status === 'AWAITING_APPROVAL').length,
     pending: dateFiltered.filter(b => b.status === 'PENDING').length,
     sent: dateFiltered.filter(b => b.status === 'SENT').length,
     failed: dateFiltered.filter(b => b.status === 'FAILED').length,
@@ -343,26 +358,71 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
     }
   }
 
-  async function handleForceSync(batch: Batch) {
+  // Reintenta el batch ENTERO como una sola factura agrupada (mismo endpoint
+  // que ya usa la app Android desde TicketDetailActivity) — a diferencia del
+  // viejo "Forzar sync" (llamaba /api/orders/:id/sync por cada línea suelta,
+  // lo que reencolaba cada producto para el SyncEngine como una venta
+  // individual: terminaba creando una factura separada por producto en vez
+  // de una sola factura agrupada como la original). Reusa
+  // reserved_invoice_number si el batch ya tenía uno (no quema un número
+  // nuevo) y manda a QBO al instante, no espera al próximo ciclo del
+  // SyncEngine.
+  async function handleRetry(batch: Batch) {
     setSyncing(batch.batchId)
     try {
-      await Promise.all(batch.orders.map(o =>
-        apiFetch(`${API}/api/orders/${o.id}/sync`, { method: 'POST' })
-      ))
-      flash(`Batch #${batch.batchId.slice(-6)} sent to sync queue`, true)
-      router.refresh()
-    } catch {
-      flash('Error forcing sync', false)
+      const res = await apiFetch(`${API}/api/orders/batch/${batch.batchId}/retry`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+      flash(`Batch #${batch.batchId.slice(-6)} — ${t('ord_labelSent')} (#${data.invoiceId ?? data.invoiceNumber ?? ''})`, true)
+      onRefresh()
+    } catch (err: any) {
+      flash(err.message || 'Error reintentando el envío', false)
     } finally {
       setSyncing(null)
     }
   }
 
+  // Verifica contra QBO si la factura ya existe (por si un timeout la marcó
+  // FAILED/PENDING acá aunque QBO sí la haya creado) — solo lectura, no
+  // reintenta el envío, así que no arriesga un duplicado.
+  async function handleReconcile(batch: Batch) {
+    setReconciling(batch.batchId)
+    try {
+      const res = await apiFetch(`${API}/api/orders/batch/${batch.batchId}/reconcile`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+      flash(data.message || (data.reconciled ? t('ord_reconcileFound') : t('ord_reconcileNotFound')), !!data.reconciled || data.status === 'SENT')
+      if (data.reconciled) onRefresh()
+    } catch (err: any) {
+      flash(err.message || t('ord_reconcileError'), false)
+    } finally {
+      setReconciling(null)
+    }
+  }
+
+  async function handleApprove() {
+    if (!approveBatch) return
+    setApproving(true)
+    try {
+      const res = await apiFetch(`${API}/api/orders/batch/${approveBatch.batchId}/approve`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+      flash(t('ord_approveSuccess').replace('{invoice}', String(data.invoiceId ?? data.invoiceNumber ?? '')), true)
+      setApproveBatch(null)
+      onRefresh()
+    } catch (err: any) {
+      flash(err.message || t('ord_approveError'), false)
+    } finally {
+      setApproving(false)
+    }
+  }
+
   const chips = [
-    { key: 'ALL',     label: t('ord_statusAll'),     count: counts.all },
-    { key: 'PENDING', label: t('ord_statusPending'), count: counts.pending },
-    { key: 'SENT',    label: t('ord_statusSent'),    count: counts.sent },
-    { key: 'FAILED',  label: t('ord_statusFailed'),  count: counts.failed },
+    { key: 'ALL',                label: t('ord_statusAll'),               count: counts.all },
+    { key: 'AWAITING_APPROVAL',  label: t('ord_statusAwaitingApproval'),  count: counts.awaiting },
+    { key: 'PENDING',            label: t('ord_statusPending'),           count: counts.pending },
+    { key: 'SENT',                label: t('ord_statusSent'),             count: counts.sent },
+    { key: 'FAILED',              label: t('ord_statusFailed'),           count: counts.failed },
   ]
 
   const paymentChips = [
@@ -399,7 +459,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             <p className="mt-1">================================</p>
             <p>{fmtDate(ticketBatch.createdAt)}</p>
             <p>{t('tkt_order')}{ticketBatch.batchId.slice(-8).toUpperCase()}</p>
-            {ticketBatch.invoiceId && <p>{t('tkt_invoice')}{ticketBatch.invoiceId}</p>}
+            {(ticketBatch.invoiceId ?? ticketBatch.reservedInvoiceNumber) != null && (
+              <p>{t('tkt_invoice')}{ticketBatch.invoiceId ?? ticketBatch.reservedInvoiceNumber}</p>
+            )}
 
             {/* Customer */}
             {ticketBatch.customerName && (
@@ -534,6 +596,30 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
       </div>
     )}
 
+    {/* Modal confirmación de aprobación — mismo componente que usa
+        SettlementClient para el cierre diario, misma razón: acción
+        financiera irreversible, no un simple toggle. */}
+    {approveBatch && (
+      <ConfirmModal
+        title={t('ord_approveConfirmTitle')}
+        body={
+          <>
+            {t('ord_approveConfirmBody')
+              .replace('{customer}', approveBatch.customerName ?? t('ord_noCustomer'))
+              .replace('{total}', fmt(approveBatch.total - approveBatch.damageCredits - (approveBatch.creditApplied ?? 0)))}
+            {approveBatch.routeName && (
+              <span className="mt-2 block text-xs text-[var(--ec-faint)]">
+                {t('ord_route')}: {approveBatch.routeName}
+              </span>
+            )}
+          </>
+        }
+        confirming={approving}
+        onConfirm={handleApprove}
+        onCancel={() => setApproveBatch(null)}
+      />
+    )}
+
     <div>
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -554,7 +640,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
             </svg>
             {exporting ? t('common_exporting') : t('common_export')}
           </button>
-          <button onClick={() => router.refresh()}
+          <button onClick={() => onRefresh()}
             className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] active:scale-[0.98] transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -660,7 +746,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
               const cfg = statusCfg[batch.status] ?? statusCfg.PENDING
               const isExpanded = expanded === batch.batchId
               const isSyncing = syncing === batch.batchId
+              const isReconciling = reconciling === batch.batchId
               const canSync = isAdmin && (batch.status === 'PENDING' || batch.status === 'FAILED')
+              const canApprove = isAdmin && batch.status === 'AWAITING_APPROVAL'
 
               return (
                 <React.Fragment key={batch.batchId}>
@@ -689,6 +777,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                           </div>
                           {batch.invoiceId && (
                             <p className="text-[10px] font-mono text-[var(--ec-faint)]">{t('ord_invoice')} #{batch.invoiceId}</p>
+                          )}
+                          {batch.routeName && (
+                            <p className="text-[10px] text-[var(--ec-faint)]">🚚 {batch.routeName}{batch.routeDate ? ` · ${batch.routeDate}` : ''}</p>
                           )}
                         </div>
                       </div>
@@ -754,8 +845,27 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company }: P
                             </svg>
                             {t('ord_ticket')}
                           </button>
+                        {canApprove && (
+                          <button onClick={() => setApproveBatch(batch)}
+                            className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-[11px] font-bold text-white hover:bg-primary-dark active:scale-[0.98] transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            {t('ord_approve')}
+                          </button>
+                        )}
                         {canSync && (
-                          <button onClick={() => handleForceSync(batch)} disabled={isSyncing}
+                          <button onClick={() => handleReconcile(batch)} disabled={isReconciling}
+                            title={t('ord_reconcileHint')}
+                            className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-50 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            {isReconciling ? t('ord_checking') : t('ord_checkQbo')}
+                          </button>
+                        )}
+                        {canSync && (
+                          <button onClick={() => handleRetry(batch)} disabled={isSyncing}
                             className="flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] disabled:opacity-50 transition">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                               className={isSyncing ? 'animate-spin' : ''}>

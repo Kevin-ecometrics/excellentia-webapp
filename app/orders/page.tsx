@@ -11,9 +11,10 @@ export interface OrderRow {
   price: number
   quantity: number
   total: number
-  status: 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED'
+  status: 'AWAITING_APPROVAL' | 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED'
   batch_id: string | null
   qb_invoice_id: string | null
+  reserved_invoice_number: number | null
   customer_id: string | null
   customer_name: string | null
   signature: string | null
@@ -26,6 +27,9 @@ export interface OrderRow {
   damage_credits: number | null
   unit: string | null
   case_qty: number | null
+  route_id: number | null
+  route_name: string | null
+  route_date: string | null
   created_at: string
 }
 
@@ -46,34 +50,36 @@ export default function OrdersPage() {
   const [company, setCompany] = useState<CompanyInfo>({ company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null })
   const [ready, setReady] = useState(false)
 
+  async function fetchOrders() {
+    const [ordersRes, settingsRes] = await Promise.allSettled([
+      apiFetch(`${API}/api/orders?limit=200`),
+      apiFetch(`${API}/api/settings`),
+    ])
+
+    if (ordersRes.status === 'fulfilled') {
+      if (ordersRes.value.status === 401) { logout(); return }
+      if (ordersRes.value.ok) {
+        try { setOrders((await ordersRes.value.json()).data ?? []) } catch {}
+      } else {
+        setFetchError(`Error ${ordersRes.value.status}`)
+      }
+    } else {
+      setFetchError('Could not connect to the server')
+    }
+
+    if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+      try { const d = await settingsRes.value.json(); if (d.data) setCompany(d.data) } catch {}
+    }
+  }
+
   useEffect(() => {
     const user = getUserInfo()
     setIsAdmin(user?.role === 'admin')
 
-    Promise.allSettled([
-      apiFetch(`${API}/api/orders?limit=200`),
-      apiFetch(`${API}/api/settings`),
-    ]).then(async ([ordersRes, settingsRes]) => {
-      if (ordersRes.status === 'fulfilled') {
-        if (ordersRes.value.status === 401) { logout(); return }
-        if (ordersRes.value.ok) {
-          try { setOrders((await ordersRes.value.json()).data ?? []) } catch {}
-        } else {
-          setFetchError(`Error ${ordersRes.value.status}`)
-        }
-      } else {
-        setFetchError('Could not connect to the server')
-      }
-
-      if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
-        try { const d = await settingsRes.value.json(); if (d.data) setCompany(d.data) } catch {}
-      }
-
-      setReady(true)
-    })
+    fetchOrders().then(() => setReady(true))
   }, [])
 
   if (!ready) return null
 
-  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={isAdmin} company={company} />
+  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={isAdmin} company={company} onRefresh={fetchOrders} />
 }
