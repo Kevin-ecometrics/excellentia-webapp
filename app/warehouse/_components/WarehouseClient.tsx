@@ -38,6 +38,12 @@ interface RouteItem {
   name: string
   sku: string | null
   unit: string | null
+  // Confirmación de salida — solo se puede cargar stock de lotes ACTIVE
+  // (nunca dañado/vencido), así que esta fila ya es la prueba de que salió
+  // en buen estado. Mismo dato que Android muestra en la revisión de
+  // devoluciones.
+  created_at: string
+  loaded_by_name: string | null
 }
 
 interface RouteDetail extends RouteRow {
@@ -267,6 +273,13 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                 {t('wh_allDates')}
               </button>
             )}
+            {/* Sub-inventario — a diferencia de Liquidación, no es admin-only:
+                el almacenista también lo necesita (mismo rol que ya exige el
+                backend para /api/warehouse/lots y /movements). */}
+            <Link href="/warehouse/inventory"
+              className="rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
+              {t('wh_inventoryNav')}
+            </Link>
             {/* Liquidación diaria — admin-only, a pedido del usuario (el
                 almacenista arma/carga rutas y revisa devoluciones, pero el
                 cierre a QBO lo hace el admin acá, no en la app). */}
@@ -397,6 +410,11 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                     <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{item.name}</p>
                                     <p className="text-xs text-[var(--ec-faint)]">
                                       {item.sku ?? item.barcode ?? '—'}{item.unit && ` · ${item.unit}`}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-[var(--ec-success-ink)]">
+                                      {t('wh_loadedOn')} {item.created_at.slice(0, 16).replace('T', ' ')}
+                                      {item.loaded_by_name && ` · ${t('wh_loadedBy')} ${item.loaded_by_name}`}
+                                      {' — '}{t('wh_loadedConfirmed')}
                                     </p>
                                   </div>
                                   <span className="shrink-0 rounded bg-[var(--ec-surface-alt)] px-2.5 py-1 text-xs font-extrabold text-[var(--ec-ink)]">

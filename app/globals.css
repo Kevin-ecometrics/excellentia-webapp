@@ -25,6 +25,8 @@
   --ec-warn-border:     #EEDFAE;
   --ec-danger:          #B3271B;
   --ec-danger-bg:       #FBEAE7;
+  --ec-info-ink:        #2E4C8A;
+  --ec-info-bg:         #E8ECF6;
 }
 
 * { box-sizing: border-box; }
