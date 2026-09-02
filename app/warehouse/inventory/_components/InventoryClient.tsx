@@ -30,7 +30,6 @@ interface InventoryMovement {
   movement_type: MovementType
   quantity: number
   route_id: number | null
-  settlement_id: number | null
   created_at: string | null
   product_name: string | null
   sku: string | null
@@ -212,7 +211,7 @@ export default function InventoryClient() {
   return (
     <div>
       <Link href="/warehouse" className="text-sm font-semibold text-[var(--ec-muted)] hover:text-[var(--ec-ink)]">
-        {t('wst_backToWarehouse')}
+        {t('wh_backToWarehouse')}
       </Link>
 
       <div className="mt-3 mb-6">
@@ -347,7 +346,6 @@ function MovementsList({
         const exp = m.lot_expiration_date?.slice(0, 10) ?? null
         const expiringSoon = exp != null && isExpiringSoon(exp)
         const isAvailable = m.lot_id != null && availableLotIds.has(m.lot_id)
-        const settled = m.settlement_id != null ? t('wh_settlementConfirmed') : t('wh_settlementDraft')
 
         return (
           <div key={m.id}>
@@ -372,7 +370,7 @@ function MovementsList({
                 )}
               </div>
               <p className={`mt-1.5 text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
-                {m.created_at?.slice(0, 16).replace('T', ' ')} · {settled}
+                {m.created_at?.slice(0, 16).replace('T', ' ')}
                 {exp && ` · ${t('wh_expires')} ${exp}`}
                 {m.route_id != null && ` · ${t('wh_routeRef')} #${m.route_id}`}
               </p>

@@ -196,12 +196,30 @@ Claves i18n nuevas: `tkt_terms`/`tkt_scanToView` (`es`/`en`, `app/lib/i18n.ts`).
 
 | Endpoint | Cuándo |
 |---|---|
-| `GET /api/orders?limit=200` | Carga inicial (server component) |
+| `GET /api/orders?limit=200` | Carga inicial, `useEffect` en `page.tsx` (**no** es server component — ver fix abajo) |
 | `GET /api/orders/export?status=...` | Exportar CSV |
 | `POST /api/orders/:id/sync` | Forzar sync (solo admin) |
 | `GET /api/settings` | Info empresa para modal ticket |
 
 `listOrders` usa `SELECT o.*` → `signature` se incluye automáticamente sin cambios extra en el backend.
+
+### Fix (2026-09-02): botón "Retry" no refrescaba la UI sola
+
+`app/orders/page.tsx` es `'use client'` — trae las órdenes en un `useEffect`
+con `[]` de dependencias, **no** con fetch de servidor. Los handlers de
+reintentar/reconciliar/aprobar en `OrdersClient.tsx`, y el botón manual
+"Refresh", llamaban a `router.refresh()` (`next/navigation`) — que solo
+vuelve a ejecutar componentes/data de **servidor**, así que sobre este
+patrón es un no-op silencioso: el backend confirmaba bien, pero nada
+disparaba de nuevo el fetch, había que F5 para ver el cambio de estado.
+Mismo cuidado aplica a cualquier otra pantalla `'use client'` que traiga su
+data por `useEffect` en vez de un server component — `router.refresh()` no
+sirve ahí, hace falta guardar y volver a llamar la función de fetch.
+
+**Fix:** `page.tsx` expone `fetchOrders()` como función nombrada (no inline
+en el `useEffect`) y la pasa a `OrdersClient` como prop `onRefresh`. Las 4
+llamadas a `router.refresh()` en `OrdersClient.tsx` se reemplazaron por
+`onRefresh()`; se sacó el import de `useRouter`, sin otro uso en el archivo.
 
 ## Settings — Numeración de facturas (invoice_counter)
 
@@ -230,12 +248,15 @@ sin depender de acordarse de borrar nada antes de generar el build. **No
 volver a crear un `.env.local` en este repo** — usar `.env.development` para
 cualquier override de desarrollo.
 
-## Página Almacén (`/warehouse`) y Liquidación (`/warehouse/settlement`)
+## Página Almacén (`/warehouse`), Sub-inventario (`/warehouse/inventory`)
 
 Nunca documentada acá pese a existir desde la Fase 111 del backend (ver
 `excellentia/CLAUDE.md` → "Módulo Almacén — rutas, recepción, FIFO,
 sub-inventario y liquidación") — se cierra ese gap de paso, junto con lo
-agregado el 2026-08-31.
+agregado el 2026-08-31 y lo de la Fase 114 (2026-09-02, ver
+`excellentia/CLAUDE.md` → "Módulo Almacén — revisión de devoluciones 2.0,
+Sub-inventario, backfill y sync instantáneo a QBO (Fase 114)" para el
+detalle completo de backend/Android).
 
 ### `/warehouse` — rutas de entrega
 
@@ -249,18 +270,26 @@ la página. `WarehouseClient.tsx`:
   `canTransitionStatus()` del backend solo para decidir qué mostrar en el
   `<select>` (UX); el backend es quien realmente lo hace cumplir.
 - `RouteModal.tsx` (crear/editar), `StopPickerModal.tsx` (agregar parada),
-  `ConfirmModal.tsx` — genérico (title/body/confirming/onConfirm/onCancel),
-  reusado tal cual por Liquidación en vez de crear un modal nuevo.
+  `ConfirmModal.tsx` — genérico (title/body/confirming/onConfirm/onCancel).
+- **Confirmación de salida por ítem (Fase 114):** cada línea del manifiesto
+  cargado muestra "Cargado el [fecha] · por [nombre] — confirmado en buen
+  estado" (`item.created_at`/`item.loaded_by_name`, expuestos por `getRoute`
+  vía join a `users`). No hizo falta ningún paso nuevo — solo se puede cargar
+  stock de lotes `ACTIVE`, así que la carga misma ya prueba que salió bien.
 
-**Sección "Devoluciones" (2026-08-31):** al expandir una ruta, trae
-`GET /api/routes/:id/returns` aparte (`GET /api/routes/:id` no lo incluye).
-Tres estados, no dos:
+**Sección "Devoluciones" (2026-08-31, condición por línea desde la Fase 114):**
+al expandir una ruta, trae `GET /api/routes/:id/returns` aparte
+(`GET /api/routes/:id` no lo incluye). Tres estados, no dos:
 1. `detail.returns_reviewed_at` es `null` → aviso amarillo "Devoluciones sin
    revisar" — el almacén todavía no pasó por Android a confirmar esta ruta.
 2. Revisado pero `returns` vacío → "Sin devoluciones registradas todavía" —
    se vendió todo, y eso está bien.
 3. Revisado con líneas → lista real, badge de condición por color
-   (`RETURN_CONDITION_BADGE`: Buena=verde, Dañada=roja, Vencida=ámbar).
+   (`RETURN_CONDITION_BADGE`: Buena=verde, Dañada=roja, Vencida=ámbar). Desde
+   la Fase 114 un mismo producto puede aparecer en **más de una línea** (ej.
+   3 Buena + 2 Dañada) — la webapp no necesitó ningún cambio para esto, ya
+   renderizaba `returns.map(r => ...)` con `key={r.id}` (no por producto), así
+   que varias líneas del mismo producto ya se veían bien.
 
 Antes de que `routes` ganara la columna `returns_reviewed_at` (backend), los
 casos 1 y 2 eran indistinguibles — los dos se veían como lista vacía, y no
@@ -269,7 +298,19 @@ simplemente nadie lo revisó todavía. El mismo flag también pinta un **badge
 en la fila colapsada** de la lista (rutas `COMPLETED` sin revisar), para no
 tener que expandir cada una para notarlo.
 
-### `/warehouse/settlement` — Liquidación diaria (admin-only, nueva 2026-08-31)
+### `/warehouse/settlement` — Liquidación diaria (admin-only, 2026-08-31 → **removida en la Fase 114**, 2026-09-02)
+
+> **Removida.** El usuario decidió sacar la Liquidación diaria por completo
+> una vez que el resto de los cambios de la Fase 114 (Sub-inventario con
+> visibilidad total del historial, revisión de devoluciones más precisa) le
+> quitaron sentido al paso manual de "confirmar" — QBO ahora se sincroniza
+> al toque en cada movimiento (`recordMovement()`, backend). Se borró
+> `app/warehouse/settlement/` entero (`page.tsx` + `SettlementClient.tsx`),
+> el botón "Liquidación" del header de `/warehouse`, y las claves i18n
+> `wst_*` (se conservó solo `wst_backToWarehouse`, renombrada a
+> `wh_backToWarehouse` porque la reusa `/warehouse/inventory`, ver abajo).
+> Se deja el resto de esta sección como registro histórico de por qué se
+> había diseñado así.
 
 Diseño completo del backend (`preview`/`confirm`, por qué se difiere solo el
 push a QBO y no el registro local) en `excellentia/CLAUDE.md` → "Módulo
@@ -305,12 +346,44 @@ Almacén". Acá el resumen del lado webapp:
 - Acceso: botón "Liquidación" en el header de `/warehouse`, condicionado a
   `getUserInfo()?.role === 'admin'`.
 
-Claves i18n nuevas: `wh_returns`/`wh_noReturns`/`wh_returnCondition_*`/
-`wh_returnsNotReviewed`/`wh_settlementNav` y toda la sección `wst_*` en
-`app/lib/i18n.ts` (es/en).
+Claves i18n de esa etapa: `wh_returns`/`wh_noReturns`/`wh_returnCondition_*`/
+`wh_returnsNotReviewed` en `app/lib/i18n.ts` (es/en) — siguen vigentes.
+`wh_settlementNav` y toda la sección `wst_*` (salvo `wst_backToWarehouse`,
+renombrada) se eliminaron junto con la pantalla en la Fase 114.
 
-`npx next build` (incluye chequeo de TypeScript) verificado limpio —
-`/warehouse/settlement` se genera como página estática más.
+### `/warehouse/inventory` — Sub-inventario (nueva, Fase 114, 2026-09-02)
+
+La webapp no tenía ningún equivalente al Sub-inventario de Android
+(`InventoryMovementsActivity`) — un admin no podía ver stock disponible ni
+movimientos sin abrir la app. Página nueva, mismos endpoints que ya
+consumía Android (`GET /api/warehouse/lots`, `GET /api/warehouse/movements`,
+gateados por `warehouseOnly` — no hizo falta ningún endpoint nuevo para
+esto).
+
+- `app/warehouse/inventory/page.tsx` — mismo patrón que `app/warehouse/page.tsx`
+  (`'use client'`, redirect a `/orders` si `role === 'operator'`).
+- `InventoryClient.tsx` — dos pestañas con chips, mismo criterio que Android:
+  - **Available** — lotes `ACTIVE` agrupados por producto en memoria (`useMemo`),
+    badge con el total, detalle por lote con vencimiento (orden FIFO: sin
+    fecha al final). Sección admin-only arriba de todo para el **backfill**
+    (ver `excellentia/CLAUDE.md` → Fase 114, punto 5) — preview → confirmar,
+    mismo `POST /api/warehouse/lots/backfill`.
+  - **History** — filtro de fecha (`<input type="date">`, mismo patrón que
+    ya usaba `WarehouseClient.tsx`) + chips de tipo de movimiento, agrupado
+    por día (`dt_today`/`dt_yesterday`, claves i18n ya existentes, reusadas
+    en vez de crear unas nuevas). Badge "Available" cruzado contra los lotes
+    con stock real (mismo `lot_id` que sigue teniendo `remaining_qty > 0`).
+- `MOVEMENT_BADGE` — color por tipo de movimiento, mismo criterio que
+  Android (`InventoryMovementsActivity.movementTypeStyle`): verde = entra
+  stock (`RECEIPT`/`RETURN`), índigo = sale de forma normal (`ROUTE_LOAD`),
+  rojo = `DAMAGE`, ámbar = `ADJUSTMENT`. El índigo no tenía token propio —
+  se agregó `--ec-info`/`--ec-info-bg` en `globals.css`, junto a los otros
+  semánticos (`--ec-success*`/`--ec-warn*`/`--ec-danger*`).
+- Acceso: botón "Sub-inventario" en el header de `/warehouse`, **sin**
+  gate de admin (a diferencia de lo que era Liquidación) — el almacenista
+  también lo necesita, mismo rol (`warehouseOnly`) que ya exige el backend.
+
+`npx next build` (incluye chequeo de TypeScript) verificado limpio.
 
 ---
 

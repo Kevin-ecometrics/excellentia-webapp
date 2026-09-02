@@ -442,7 +442,6 @@ export const translations = {
     wh_returnCondition_GOOD:    'Buena',
     wh_returnCondition_DAMAGED: 'Dañada',
     wh_returnCondition_EXPIRED: 'Vencida',
-    wh_settlementNav: 'Liquidación',
 
     // Warehouse — Sub-inventario (Disponible + Historial, paridad con Android)
     wh_inventoryNav:      'Sub-inventario',
@@ -459,8 +458,6 @@ export const translations = {
     wh_movementType_RETURN:     'Devolución',
     wh_movementType_DAMAGE:     'Daño/baja',
     wh_movementType_ADJUSTMENT: 'Ajuste',
-    wh_settlementDraft:    'Borrador',
-    wh_settlementConfirmed: 'Confirmada',
     wh_noMovements:        'No hay movimientos registrados',
     wh_noMovementsFilter:  'No hay movimientos para este filtro',
     wh_routeRef:           'Ruta',
@@ -476,26 +473,7 @@ export const translations = {
     wh_backfillNone:       'Todo tu stock ya tiene lote — no hay nada para respaldar',
     wh_backfillSuccess:    'Lotes creados',
     wh_backfillError:      'No se pudo completar el backfill',
-
-    // Warehouse — Liquidación diaria (admin-only)
-    wst_title:            'Liquidación diaria',
-    wst_hint:             'Agrupa los movimientos de inventario pendientes de hoy y sincroniza el stock a QuickBooks una sola vez por producto.',
-    wst_backToWarehouse:  '← Volver a Almacén',
-    wst_unreviewedWarningTitle: 'Hay rutas completadas sin revisar',
-    wst_unreviewedWarningBody:  'El almacén todavía no registró las devoluciones de estas rutas. Si liquidás ahora, lo que vuelva después va a quedar pendiente para la próxima liquidación.',
-    wst_generate:         'Generar liquidación de hoy',
-    wst_confirm:          'Confirmar liquidación',
-    wst_confirmModalTitle:'Confirmar liquidación',
-    wst_confirmModalBody: 'Esto va a sincronizar el stock de estos productos a QuickBooks (QtyOnHand). No se puede deshacer. ¿Confirmás?',
-    wst_statusDraft:      'Borrador',
-    wst_statusConfirmed:  'Confirmada',
-    wst_noLines:          'No hay movimientos pendientes de liquidar',
-    wst_net:              'Neto',
-    wst_stockChange:      'Stock',
-    wst_syncFailed:       'Falló la sincronización',
-    wst_confirmed:        'Liquidación confirmada',
-    wst_confirmFailed:    'No se pudo confirmar la liquidación',
-    wst_generateFailed:   'No se pudo generar la liquidación',
+    wh_backToWarehouse:    '← Volver a Almacén',
   },
 
   en: {
@@ -939,7 +917,6 @@ export const translations = {
     wh_returnCondition_GOOD:    'Good',
     wh_returnCondition_DAMAGED: 'Damaged',
     wh_returnCondition_EXPIRED: 'Expired',
-    wh_settlementNav: 'Settlement',
 
     // Warehouse — Sub-inventory (Available + History, parity with Android)
     wh_inventoryNav:      'Sub-inventory',
@@ -956,8 +933,6 @@ export const translations = {
     wh_movementType_RETURN:     'Return',
     wh_movementType_DAMAGE:     'Damage/write-off',
     wh_movementType_ADJUSTMENT: 'Adjustment',
-    wh_settlementDraft:    'Draft',
-    wh_settlementConfirmed: 'Confirmed',
     wh_noMovements:        'No movements recorded',
     wh_noMovementsFilter:  'No movements for this filter',
     wh_routeRef:           'Route',
@@ -973,26 +948,7 @@ export const translations = {
     wh_backfillNone:       'All your stock already has a lot — nothing to back',
     wh_backfillSuccess:    'Lots created',
     wh_backfillError:      'Could not complete the backfill',
-
-    // Warehouse — Daily settlement (admin-only)
-    wst_title:            'Daily settlement',
-    wst_hint:             'Groups today\'s pending inventory movements and pushes stock to QuickBooks once per product.',
-    wst_backToWarehouse:  '← Back to Warehouse',
-    wst_unreviewedWarningTitle: 'There are completed routes not reviewed yet',
-    wst_unreviewedWarningBody:  'The warehouse hasn\'t recorded returns for these routes yet. If you settle now, anything that comes back later will be left pending for the next settlement.',
-    wst_generate:         'Generate today\'s settlement',
-    wst_confirm:          'Confirm settlement',
-    wst_confirmModalTitle:'Confirm settlement',
-    wst_confirmModalBody: 'This will sync these products\' stock to QuickBooks (QtyOnHand). This cannot be undone. Confirm?',
-    wst_statusDraft:      'Draft',
-    wst_statusConfirmed:  'Confirmed',
-    wst_noLines:          'No pending movements to settle',
-    wst_net:              'Net',
-    wst_stockChange:      'Stock',
-    wst_syncFailed:       'Sync failed',
-    wst_confirmed:        'Settlement confirmed',
-    wst_confirmFailed:    'Could not confirm the settlement',
-    wst_generateFailed:   'Could not generate the settlement',
+    wh_backToWarehouse:    '← Back to Warehouse',
   },
 } as const
 

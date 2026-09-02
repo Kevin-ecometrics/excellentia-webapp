@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import type { RouteRow } from '../page'
-import { apiFetch, logout, getUserInfo } from '@/app/lib/auth'
+import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
 import RouteModal from './RouteModal'
 import ConfirmModal from './ConfirmModal'
@@ -106,7 +106,6 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   const [detail, setDetail] = useState<RouteDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [returns, setReturns] = useState<RouteReturn[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
 
   const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null)
 
@@ -131,10 +130,6 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
       })
       .then(data => { if (data) setRoutes(data.data ?? []) })
       .catch(() => setError('Could not connect to the server'))
-  }, [])
-
-  useEffect(() => {
-    setIsAdmin(getUserInfo()?.role === 'admin')
   }, [])
 
   useEffect(() => {
@@ -273,22 +268,10 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                 {t('wh_allDates')}
               </button>
             )}
-            {/* Sub-inventario — a diferencia de Liquidación, no es admin-only:
-                el almacenista también lo necesita (mismo rol que ya exige el
-                backend para /api/warehouse/lots y /movements). */}
             <Link href="/warehouse/inventory"
               className="rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2 text-sm font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
               {t('wh_inventoryNav')}
             </Link>
-            {/* Liquidación diaria — admin-only, a pedido del usuario (el
-                almacenista arma/carga rutas y revisa devoluciones, pero el
-                cierre a QBO lo hace el admin acá, no en la app). */}
-            {isAdmin && (
-              <Link href="/warehouse/settlement"
-                className="rounded bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-dark transition">
-                {t('wh_settlementNav')}
-              </Link>
-            )}
           </div>
         </div>
 
