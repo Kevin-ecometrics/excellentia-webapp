@@ -774,6 +774,13 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                                 ↩ {t('ord_negSale')}
                               </span>
                             )}
+                            {/* Fase 115.5 — is_courtesy es por ítem, no por batch;
+                                alcanza con que uno solo lo tenga para avisar acá. */}
+                            {batch.orders.some(o => !!o.is_courtesy) && (
+                              <span className="inline-flex items-center rounded-full bg-[var(--ec-info-bg)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--ec-info-ink)] border border-[var(--ec-info-ink)]/15">
+                                🎁 {t('ord_courtesy')}
+                              </span>
+                            )}
                           </div>
                           {batch.invoiceId && (
                             <p className="text-[10px] font-mono text-[var(--ec-faint)]">{t('ord_invoice')} #{batch.invoiceId}</p>

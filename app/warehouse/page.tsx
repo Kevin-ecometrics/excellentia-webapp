@@ -11,6 +11,10 @@ export interface RouteRow {
   driver_user_id: number | null
   driver_name: string | null
   status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+  // Fase 115 — ruta directa (un solo destino, carga pre-asignada) vs no
+  // directa (multi-parada, flujo de siempre). Se crea desde Android, acá es
+  // solo lectura — no hay selector en RouteModal.tsx (edit-only).
+  route_type: 'DIRECT' | 'MULTI_STOP'
   notes: string | null
   stop_count: number
   // Fase 112 (2026-08-31) — marca explícita de que el almacén ya revisó

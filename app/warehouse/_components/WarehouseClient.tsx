@@ -19,7 +19,11 @@ interface Stop {
   id: number
   route_id: number
   position: number
-  stop_type: 'BATCH' | 'PRE_ORDER' | 'CUSTOMER'
+  // Fase 115.4 — CONSIGNMENT: mismo shape que CUSTOMER (customer_id/name
+  // directos, sin batch_id ni pre_order_id) — lo que se dejó y cómo se
+  // liquidó vive en route_consignment_items (endpoint aparte, ver
+  // ConsignmentItem más abajo).
+  stop_type: 'BATCH' | 'PRE_ORDER' | 'CUSTOMER' | 'CONSIGNMENT'
   batch_id: string | null
   pre_order_id: number | null
   customer_id: string | null
@@ -27,6 +31,23 @@ interface Stop {
   status: string
   batch?: { batch_id: string; total: number; status: string; item_count: number; qb_invoice_id: string | null } | null
   preOrder?: { id: number; status: string; scheduled_date: string | null } | null
+}
+
+// Fase 115.4 — GET /api/routes/:id/stops/:stopId/consignment. La webapp es
+// solo lectura acá (registrar/liquidar es Android-only, a pedido del
+// diseño original) — se usa para mostrar el estado de cada línea dejada en
+// consignación bajo la parada correspondiente.
+interface ConsignmentItem {
+  id: number
+  route_stop_id: number
+  product_id: number
+  name: string
+  sku: string | null
+  quantity_left: number
+  quantity_sold: number
+  quantity_returned: number
+  unit: string | null
+  settled_at: string | null
 }
 
 interface RouteItem {
@@ -66,6 +87,25 @@ interface RouteReturn {
   reviewed_at: string
   name: string
   sku: string | null
+}
+
+// Fase 115.2 — GET /api/routes/:id/returns/expected, desglosado por
+// condición desde esta fase (antes solo traía un total sin discriminar).
+// discrepancy sin clamping (a diferencia de expected_return_qty): negativo
+// significa que se contó/devolvió más de lo que esta ruta cargó de este
+// producto. Solo informativo — nunca bloquea nada.
+interface ReconciliationRow {
+  product_id: number
+  name: string
+  sku: string | null
+  loaded_qty: number
+  sold_qty: number
+  returned_good_qty: number
+  returned_damaged_qty: number
+  returned_expired_qty: number
+  returned_transporter_damage_qty: number
+  expected_return_qty: number
+  discrepancy: number
 }
 
 const RETURN_CONDITION_BADGE: Record<string, string> = {
@@ -112,6 +152,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   const [detail, setDetail] = useState<RouteDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [returns, setReturns] = useState<RouteReturn[]>([])
+  const [reconciliation, setReconciliation] = useState<ReconciliationRow[]>([])
+  const [consignmentByStop, setConsignmentByStop] = useState<Map<number, ConsignmentItem[]>>(new Map())
 
   const [editingRoute, setEditingRoute] = useState<RouteRow | null>(null)
 
@@ -155,7 +197,19 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
         if (!res.ok) throw new Error(`Error ${res.status}`)
         return res.json()
       })
-      .then(data => setDetail(data.data))
+      .then(data => {
+        setDetail(data.data)
+        // Fase 115.4 — route_consignment_items vive aparte de GET /routes/:id
+        // (no hay para qué traerlo si la ruta no tiene paradas de este tipo).
+        const consignmentStops: Stop[] = (data.data?.stops ?? []).filter((s: Stop) => s.stop_type === 'CONSIGNMENT')
+        if (consignmentStops.length === 0) { setConsignmentByStop(new Map()); return }
+        Promise.all(consignmentStops.map(s =>
+          apiFetch(`${API}/api/routes/${id}/stops/${s.id}/consignment`)
+            .then(r => r.ok ? r.json() : { data: [] })
+            .then(d => [s.id, d.data ?? []] as [number, ConsignmentItem[]])
+            .catch(() => [s.id, []] as [number, ConsignmentItem[]])
+        )).then(pairs => setConsignmentByStop(new Map(pairs)))
+      })
       .catch(() => flash('Error loading route', false))
       .finally(() => setDetailLoading(false))
 
@@ -166,6 +220,13 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
       .then(res => res.ok ? res.json() : { data: [] })
       .then(data => setReturns(data.data ?? []))
       .catch(() => setReturns([]))
+
+    // Reconciliación (Fase 115.2) — mismo endpoint que ya usaba Android para
+    // "esperado de vuelta", ahora desglosado por condición + discrepancy.
+    apiFetch(`${API}/api/routes/${id}/returns/expected`)
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => setReconciliation(data.data ?? []))
+      .catch(() => setReconciliation([]))
   }, [])
 
   function toggleExpand(route: RouteRow) {
@@ -173,11 +234,15 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
       setExpandedId(null)
       setDetail(null)
       setReturns([])
+      setReconciliation([])
+      setConsignmentByStop(new Map())
       return
     }
     setExpandedId(route.id)
     setDetail(null)
     setReturns([])
+    setReconciliation([])
+    setConsignmentByStop(new Map())
     loadDetail(route.id)
   }
 
@@ -307,6 +372,13 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                         <span className={`inline-block rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${STATUS_BADGE[route.status]}`}>
                           {t(`wh_status_${route.status}` as any)}
                         </span>
+                        {/* Fase 115 — solo se marca DIRECT (la excepción);
+                            MULTI_STOP es el flujo de siempre, sin badge. */}
+                        {route.route_type === 'DIRECT' && (
+                          <span className="inline-block rounded bg-[var(--ec-info-bg)] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase text-[var(--ec-info-ink)]">
+                            {t('wh_routeType_DIRECT')}
+                          </span>
+                        )}
                         {/* Fase 112 (2026-08-31) — aviso para el admin: no
                             asumir "nada volvió" solo porque no hay filas en
                             route_returns, capaz el almacén todavía no la revisó. */}
@@ -371,18 +443,39 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                           ) : (
                             <div className="mb-4 space-y-2">
                               {[...detail.stops].sort((a, b) => a.position - b.position).map((stop, i) => (
-                                <div key={stop.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
-                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[11px] font-extrabold text-[var(--ec-muted)]">
-                                    {i + 1}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{stop.customer_name ?? '—'}</p>
-                                    <p className="text-xs text-[var(--ec-faint)]">
-                                      {stop.stop_type === 'BATCH' ? t('wh_order') : stop.stop_type === 'PRE_ORDER' ? t('wh_preorder') : t('wh_customer')}
-                                      {stop.batch && ` · $${Number(stop.batch.total).toFixed(2)}`}
-                                      {stop.preOrder && ` · #${stop.preOrder.id}`}
-                                    </p>
+                                <div key={stop.id} className="rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
+                                  <div className="flex items-center gap-3">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--ec-surface-alt)] text-[11px] font-extrabold text-[var(--ec-muted)]">
+                                      {i + 1}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{stop.customer_name ?? '—'}</p>
+                                      <p className="text-xs text-[var(--ec-faint)]">
+                                        {stop.stop_type === 'BATCH' ? t('wh_order')
+                                          : stop.stop_type === 'PRE_ORDER' ? t('wh_preorder')
+                                          : stop.stop_type === 'CONSIGNMENT' ? t('wh_consignment')
+                                          : t('wh_customer')}
+                                        {stop.batch && ` · $${Number(stop.batch.total).toFixed(2)}`}
+                                        {stop.preOrder && ` · #${stop.preOrder.id}`}
+                                      </p>
+                                    </div>
                                   </div>
+                                  {/* Fase 115.4 — solo lectura: registrar/liquidar es Android-only. */}
+                                  {stop.stop_type === 'CONSIGNMENT' && (consignmentByStop.get(stop.id)?.length ?? 0) > 0 && (
+                                    <div className="mt-2 space-y-1 border-t border-[var(--ec-border)] pt-2">
+                                      {consignmentByStop.get(stop.id)!.map(ci => (
+                                        <div key={ci.id} className="flex items-center justify-between gap-2 text-xs">
+                                          <span className="truncate text-[var(--ec-ink)]">{ci.name}</span>
+                                          <span className="shrink-0 text-[var(--ec-faint)]">
+                                            {t('wh_consignmentLeft')} {ci.quantity_left}
+                                            {ci.settled_at
+                                              ? ` · ${t('wh_consignmentSold')} ${ci.quantity_sold} · ${t('wh_consignmentReturned')} ${ci.quantity_returned}`
+                                              : ` · ${t('wh_consignmentUnsettled')}`}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -453,6 +546,54 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                 </div>
                               ))}
                             </div>
+                          )}
+
+                          {/* Fase 115.2 — reconciliación salida/regreso: por
+                              cada producto cargado, cuánto se vendió + cuánto
+                              volvió por condición, y la diferencia contra lo
+                              cargado. Solo avisa (discrepancia resaltada si la
+                              ruta ya se revisó y no da 0) — nunca bloquea, el
+                              almacén puede tener conteos incompletos legítimos
+                              antes de terminar de revisar. */}
+                          {reconciliation.length > 0 && (
+                            <>
+                              <p className="mt-4 mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_reconciliation')}</p>
+                              <div className="overflow-x-auto rounded-md border border-[var(--ec-border)] bg-white">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-[var(--ec-border)] text-[var(--ec-faint)]">
+                                      <th className="px-3 py-2 text-left font-bold">{t('wh_product')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_loaded')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_sold')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_GOOD')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_DAMAGED')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_EXPIRED')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_TRANSPORTER_DAMAGE')}</th>
+                                      <th className="px-3 py-2 text-right font-bold">{t('wh_discrepancy')}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {reconciliation.map(r => {
+                                      const flag = !!detail.returns_reviewed_at && r.discrepancy !== 0
+                                      return (
+                                        <tr key={r.product_id} className="border-b border-[var(--ec-border)] last:border-0">
+                                          <td className="px-3 py-2 font-semibold text-[var(--ec-ink)]">{r.name}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.loaded_qty}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.sold_qty}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_good_qty || '—'}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_damaged_qty || '—'}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_expired_qty || '—'}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_transporter_damage_qty || '—'}</td>
+                                          <td className={`px-3 py-2 text-right font-extrabold ${flag ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]'}`}>
+                                            {r.discrepancy}
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </>
                           )}
                         </>
                       )}

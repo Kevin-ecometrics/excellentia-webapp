@@ -30,6 +30,9 @@ export interface OrderRow {
   route_id: number | null
   route_name: string | null
   route_date: string | null
+  // Fase 115.5 — price/total de la fila siguen el valor real de catálogo
+  // (reportería); el $0 se aplica solo en la línea de QBO, no acá.
+  is_courtesy: boolean | number
   created_at: string
 }
 
