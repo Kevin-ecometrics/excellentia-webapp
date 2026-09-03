@@ -439,9 +439,10 @@ export const translations = {
     wh_returns:       'Devoluciones',
     wh_noReturns:     'Sin devoluciones registradas todavía',
     wh_returnsNotReviewed: 'Devoluciones sin revisar',
-    wh_returnCondition_GOOD:    'Buena',
-    wh_returnCondition_DAMAGED: 'Dañada',
-    wh_returnCondition_EXPIRED: 'Vencida',
+    wh_returnCondition_GOOD:              'Buena',
+    wh_returnCondition_DAMAGED:           'Dañada',
+    wh_returnCondition_EXPIRED:           'Vencida',
+    wh_returnCondition_TRANSPORTER_DAMAGE: 'Dañada en tránsito',
 
     // Warehouse — Sub-inventario (Disponible + Historial, paridad con Android)
     wh_inventoryNav:      'Sub-inventario',
@@ -914,9 +915,10 @@ export const translations = {
     wh_returns:       'Returns',
     wh_noReturns:     'No returns recorded yet',
     wh_returnsNotReviewed: 'Returns not reviewed yet',
-    wh_returnCondition_GOOD:    'Good',
-    wh_returnCondition_DAMAGED: 'Damaged',
-    wh_returnCondition_EXPIRED: 'Expired',
+    wh_returnCondition_GOOD:               'Good',
+    wh_returnCondition_DAMAGED:            'Damaged',
+    wh_returnCondition_EXPIRED:            'Expired',
+    wh_returnCondition_TRANSPORTER_DAMAGE: 'Transporter damage',
 
     // Warehouse — Sub-inventory (Available + History, parity with Android)
     wh_inventoryNav:      'Sub-inventory',

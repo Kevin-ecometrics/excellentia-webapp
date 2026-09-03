@@ -58,17 +58,23 @@ interface RouteReturn {
   route_id: number
   product_id: number
   quantity: number
-  condition_status: 'GOOD' | 'DAMAGED' | 'EXPIRED'
+  condition_status: 'GOOD' | 'DAMAGED' | 'EXPIRED' | 'TRANSPORTER_DAMAGE'
   notes: string | null
+  // Fase 116 — valuación de la pérdida (NULL para GOOD, que no pierde nada).
+  unit_price: number | null
+  amount: number | null
   reviewed_at: string
   name: string
   sku: string | null
 }
 
 const RETURN_CONDITION_BADGE: Record<string, string> = {
-  GOOD:    'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
-  DAMAGED: 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
-  EXPIRED: 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+  GOOD:               'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]',
+  DAMAGED:             'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
+  EXPIRED:             'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
+  // Fase 116 — mismo índigo que ya usa MOVEMENT_BADGE para ROUTE_LOAD en
+  // /warehouse/inventory, distinto del rojo de DAMAGED y el ámbar de EXPIRED.
+  TRANSPORTER_DAMAGE:  'bg-[var(--ec-info-bg)] text-[var(--ec-info-ink)]',
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -432,6 +438,15 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   <span className={`shrink-0 rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.08em] uppercase ${RETURN_CONDITION_BADGE[r.condition_status]}`}>
                                     {t(`wh_returnCondition_${r.condition_status}` as any)}
                                   </span>
+                                  {/* Fase 116 — pérdida de inventario valorizada, no aplica a GOOD (amount siempre NULL ahí).
+                                      Number(): amount es DECIMAL(10,2) en MySQL — mysql2 lo devuelve como string
+                                      sin decimalNumbers configurado (mismo gotcha que batch_damage.qty, ver
+                                      excellentia/CLAUDE.md), así que llega como "3.50" via JSON, no 3.5. */}
+                                  {Number(r.amount) > 0 && (
+                                    <span className="shrink-0 text-xs font-extrabold text-[var(--ec-danger)]">
+                                      -${Number(r.amount).toFixed(2)}
+                                    </span>
+                                  )}
                                   <span className="shrink-0 rounded bg-[var(--ec-surface-alt)] px-2.5 py-1 text-xs font-extrabold text-[var(--ec-ink)]">
                                     {r.quantity}
                                   </span>
