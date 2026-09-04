@@ -221,6 +221,19 @@ en el `useEffect`) y la pasa a `OrdersClient` como prop `onRefresh`. Las 4
 llamadas a `router.refresh()` en `OrdersClient.tsx` se reemplazaron por
 `onRefresh()`; se sacó el import de `useRouter`, sin otro uso en el archivo.
 
+### Cancelar / Editar venta AWAITING_APPROVAL (Fase 117) — backend existe, sin UI acá a propósito
+
+`POST /api/orders/batch/:batchId/cancel` y `/edit` (detalle completo en
+`excellentia/CLAUDE.md` y `excellentia/PROGRESS.md`) están implementados en
+el backend, pero **decisión explícita del usuario (2026-09-04): esta acción
+no se expone en la webapp.** Cancelar/editar una venta `AWAITING_APPROVAL`
+es algo que solo puede hacer un admin o el operador dueño del batch, y solo
+**desde la app Android** (`AndroidStudioProjects/test` —
+`TicketDetailActivity`/`EditBatchActivity` nuevas, ver `CLAUDE.md` de ese
+repo). Se llegó a implementar una primera versión acá (`OrdersClient.tsx`)
+y se revirtió sin llegar a deployarse — no hay rastro en el código actual,
+queda esta nota para no repetir el intento sin querer.
+
 ## Settings — Numeración de facturas (invoice_counter)
 
 Card "Invoice numbering" en `app/settings/_components/SettingsClient.tsx`, visible solo si `getUserInfo().role === 'admin'` (la página en sí no está protegida por rol del lado del cliente — ver nota abajo). Muestra el `invoice_counter` actual (próximo `DocNumber` a asignar en QBO) y permite subirlo con un input + botón, con un modal de confirmación (`InvoiceCounterConfirmModal`, mismo patrón visual que `DeleteModal` de `UsersClient.tsx`) antes de aplicar el cambio — `PUT /api/settings/invoice-counter` (backend valida `next > current`, nunca deja bajar el número). Detalle completo del endpoint en `excellentia/CLAUDE.md`.
