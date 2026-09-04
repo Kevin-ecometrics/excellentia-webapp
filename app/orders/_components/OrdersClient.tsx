@@ -510,6 +510,23 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
               </div>
             ))}
 
+            {/* Fase 115.5 — Courtesy Summary, mismo enfoque que Negative Sale
+                Summary de abajo: la línea ya salió arriba a precio real (es
+                una venta real, a diferencia de un ítem dañado que nunca fue
+                parte del carrito), acá se lista aparte y se descuenta del
+                total — igual que hace la factura de QBO con UnitPrice: 0. */}
+            {ticketBatch.orders.some(o => !!o.is_courtesy) && (
+              <>
+                <p>--------------------------------</p>
+                <p className="font-bold">{t('tkt_courtesySummary')}</p>
+                {ticketBatch.orders.filter(o => !!o.is_courtesy).map((o, i) => (
+                  <p key={i} className="pl-2">
+                    {o.product_name}: {formatDamageQty(o.quantity, o.unit)} · {fmt(-Number(o.total))}
+                  </p>
+                ))}
+              </>
+            )}
+
             {/* Negative Sale Summary */}
             {ticketDamageItems.length > 0 && (
               <>
@@ -529,18 +546,29 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
               const creditsTotal = ticketDamageItems.reduce(
                 (sum, d) => sum + (d.amount ?? d.qty * (d.unit_price ?? 0)), 0
               )
+              const courtesyTotal = ticketBatch.orders
+                .filter(o => !!o.is_courtesy)
+                .reduce((sum, o) => sum + Number(o.total), 0)
               return (
                 <>
-                  {creditsTotal > 0 && (
+                  {(creditsTotal > 0 || courtesyTotal > 0) && (
                     <>
                       <div className="flex justify-between">
                         <span>{t('tkt_subtotal')}</span>
                         <span>{fmt(ticketBatch.total)}</span>
                       </div>
-                      <div className="flex justify-between text-[var(--ec-danger)] font-semibold">
-                        <span>{t('tkt_credits')}</span>
-                        <span>{fmt(-creditsTotal)}</span>
-                      </div>
+                      {courtesyTotal > 0 && (
+                        <div className="flex justify-between text-[var(--ec-info-ink)] font-semibold">
+                          <span>{t('tkt_courtesy')}</span>
+                          <span>{fmt(-courtesyTotal)}</span>
+                        </div>
+                      )}
+                      {creditsTotal > 0 && (
+                        <div className="flex justify-between text-[var(--ec-danger)] font-semibold">
+                          <span>{t('tkt_credits')}</span>
+                          <span>{fmt(-creditsTotal)}</span>
+                        </div>
+                      )}
                     </>
                   )}
                   {ticketBatch.creditApplied && ticketBatch.creditApplied > 0 && (
@@ -551,7 +579,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                   )}
                   <div className="flex justify-between font-bold">
                     <span>{t('tkt_total')}</span>
-                    <span>{fmt(ticketBatch.total - creditsTotal - (ticketBatch.creditApplied ?? 0))}</span>
+                    <span>{fmt(ticketBatch.total - courtesyTotal - creditsTotal - (ticketBatch.creditApplied ?? 0))}</span>
                   </div>
                 </>
               )
