@@ -795,6 +795,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                           <polyline points="9 18 15 12 9 6"/>
                         </svg>
                         <div>
+                          {batch.invoiceId && (
+                            <p className="text-[10px] font-mono text-[var(--ec-faint)]">{t('ord_invoice')} #{batch.invoiceId}</p>
+                          )}
                           <div className="flex items-center gap-1.5">
                             <p className="font-mono text-xs font-semibold text-[var(--ec-ink)]">#{batch.batchId.slice(-8).toUpperCase()}</p>
                             {batchSignatures.get(batch.batchId) && (
@@ -815,9 +818,6 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                               </span>
                             )}
                           </div>
-                          {batch.invoiceId && (
-                            <p className="text-[10px] font-mono text-[var(--ec-faint)]">{t('ord_invoice')} #{batch.invoiceId}</p>
-                          )}
                           {batch.routeName && (
                             <p className="text-[10px] text-[var(--ec-faint)]">🚚 {batch.routeName}{batch.routeDate ? ` · ${batch.routeDate}` : ''}</p>
                           )}
