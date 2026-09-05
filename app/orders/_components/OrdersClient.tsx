@@ -204,6 +204,11 @@ function groupBatches(orders: OrderRow[]): Batch[] {
     const allSent = items.every(i => i.status === 'SENT')
     const anyFailed = items.some(i => i.status === 'FAILED')
     const anyAwaiting = items.some(i => i.status === 'AWAITING_APPROVAL')
+    // Fase 117 — cancelBatch solo cancela un batch AWAITING_APPROVAL entero
+    // (nunca queda una mezcla), así que "alguno cancelado" alcanza. Sin este
+    // check caía en el 'PENDING' del final — mostraba "Pending" para una
+    // venta que en realidad se había cancelado.
+    const anyCancelled = items.some(i => i.status === 'CANCELLED')
     return {
       batchId,
       orders: items,
@@ -211,7 +216,7 @@ function groupBatches(orders: OrderRow[]): Batch[] {
       userEmail: items[0]?.user_email ?? null,
       userName:  items[0]?.user_name  ?? null,
       total: items.reduce((s, i) => s + Number(i.total), 0),
-      status: anyFailed ? 'FAILED' : allSent ? 'SENT' : anyAwaiting ? 'AWAITING_APPROVAL' : 'PENDING',
+      status: anyFailed ? 'FAILED' : allSent ? 'SENT' : anyAwaiting ? 'AWAITING_APPROVAL' : anyCancelled ? 'CANCELLED' : 'PENDING',
       createdAt: items[0]?.created_at ?? '',
       invoiceId: items[0]?.qb_invoice_id ?? null,
       reservedInvoiceNumber: items[0]?.reserved_invoice_number ?? null,

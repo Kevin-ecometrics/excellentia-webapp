@@ -234,6 +234,17 @@ repo). Se llegó a implementar una primera versión acá (`OrdersClient.tsx`)
 y se revirtió sin llegar a deployarse — no hay rastro en el código actual,
 queda esta nota para no repetir el intento sin querer.
 
+**Bug encontrado por el usuario probando en producción (2026-09-04) —
+cancelar una venta la mostraba como "Pending" acá, no "Cancelled".**
+`groupBatches()` (`OrdersClient.tsx`) calcula el status de un batch mirando
+sus líneas (`allSent`/`anyFailed`/`anyAwaiting`/...) — se escribió antes de
+que `CANCELLED` fuera un valor real en `orders.status` (existe en el ENUM
+desde la Fase 1 pero nadie lo usaba hasta `cancelBatch`, Fase 117), así que
+no tenía ningún check para él y caía siempre en el `'PENDING'` final —
+además inflaba el contador del KPI "Pending". Se agregó `anyCancelled` y su
+rama correspondiente. Mismo bug encontrado y arreglado en 3 lugares de
+Android (`excellentia/CLAUDE.md`, entrada de `TicketDetailActivity`).
+
 ## Settings — Numeración de facturas (invoice_counter)
 
 Card "Invoice numbering" en `app/settings/_components/SettingsClient.tsx`, visible solo si `getUserInfo().role === 'admin'` (la página en sí no está protegida por rol del lado del cliente — ver nota abajo). Muestra el `invoice_counter` actual (próximo `DocNumber` a asignar en QBO) y permite subirlo con un input + botón, con un modal de confirmación (`InvoiceCounterConfirmModal`, mismo patrón visual que `DeleteModal` de `UsersClient.tsx`) antes de aplicar el cambio — `PUT /api/settings/invoice-counter` (backend valida `next > current`, nunca deja bajar el número). Detalle completo del endpoint en `excellentia/CLAUDE.md`.
