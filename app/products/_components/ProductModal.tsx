@@ -21,6 +21,11 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Se guardó local pero QBO rechazó el push (updateProduct ahora reporta
+  // qb_synced/qb_sync_error) — se queda el modal abierto mostrando el motivo
+  // en vez de cerrarlo de una, para que el admin no se entere recién cuando
+  // vuelva a abrir el producto y vea el dato viejo en QuickBooks.
+  const [qbWarning, setQbWarning] = useState('')
 
   useEffect(() => {
     if (product) {
@@ -67,6 +72,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setQbWarning('')
     if (!validate()) return
 
     setSaving(true)
@@ -93,6 +99,13 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+      if (data.qb_synced === false) {
+        // Guardado local ok, QBO no — se queda el modal abierto con el
+        // motivo en vez de cerrar de una (ver comentario en el estado).
+        setQbWarning(data.qb_sync_error || '—')
+        setSaving(false)
+        return
+      }
       onSaved()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error saving')
@@ -119,6 +132,13 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
 
         {error && (
           <div className="mb-4 rounded bg-[var(--ec-danger-bg)] px-4 py-2.5 text-sm text-[var(--ec-danger)]">{error}</div>
+        )}
+
+        {qbWarning && (
+          <div className="mb-4 rounded border border-[var(--ec-warn-border)] bg-[var(--ec-warn-bg)] px-4 py-2.5 text-sm text-[var(--ec-warn-ink)]">
+            <p className="font-bold">{t('prod_qbSyncFailed')}</p>
+            <p className="mt-0.5">{qbWarning}</p>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -241,14 +261,23 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 rounded border border-[var(--ec-border-strong)] px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] transition hover:bg-white active:scale-[0.98]">
-              {t('common_cancel')}
-            </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 rounded bg-primary px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:opacity-60">
-              {saving ? t('common_saving') : isEdit ? t('modal_saveChanges') : t('modal_create')}
-            </button>
+            {qbWarning ? (
+              <button type="button" onClick={onSaved}
+                className="flex-1 rounded bg-primary px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-primary-dark active:scale-[0.98]">
+                {t('common_ok')}
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={onClose}
+                  className="flex-1 rounded border border-[var(--ec-border-strong)] px-4 py-2.5 text-sm font-bold text-[var(--ec-ink)] transition hover:bg-white active:scale-[0.98]">
+                  {t('common_cancel')}
+                </button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 rounded bg-primary px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-primary-dark active:scale-[0.98] disabled:opacity-60">
+                  {saving ? t('common_saving') : isEdit ? t('modal_saveChanges') : t('modal_create')}
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

@@ -54,6 +54,8 @@ Next.js 16 nombra el middleware `proxy.ts` (exporta `proxy`). No crear `middlewa
 
 **Vaciar un campo (SKU, Código de barras, Precio mínimo, Unit, Peso/lb):** `handleSubmit` manda estos campos siempre en el body (`valor.trim() || null` / `valor || null`), nunca los omite — antes, si dejabas el input vacío y guardabas, la key ni viajaba en el `PUT` y el backend (que solo actualiza columnas presentes con `!== undefined`) dejaba el valor viejo intacto en MySQL. Bug corregido a nivel frontend únicamente, el backend ya manejaba `null` bien.
 
+**Aviso si falla el sync a QBO al guardar (2026-09-08).** Antes, `handleSubmit` cerraba el modal apenas el `PUT` respondía 200, sin importar si el push a QBO adentro del backend había fallado (quedaba solo un warning en el log del servidor) — el admin se enteraba recién la próxima vez que abría el producto y veía el dato viejo en QuickBooks. El backend (`updateProduct`, `excellentia/CLAUDE.md`) ahora manda `qb_synced`/`qb_sync_error` en la respuesta del `PUT`. Si `qb_synced === false`, el modal **no se cierra solo**: muestra un banner ámbar (`prod_qbSyncFailed` + el motivo) y cambia el footer a un solo botón "OK" (`common_ok`) que recién ahí llama a `onSaved()` — el guardado local ya sucedió (`onSaved` refresca la lista igual), solo se retrasa el cierre para que el aviso se vea.
+
 ### SKU vs Código de barras (Fase 105, backend `excellentia/CLAUDE.md`)
 
 Hasta la Fase 105, el campo "Código de barras" del modal hacía las dos cosas a la
