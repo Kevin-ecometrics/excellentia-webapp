@@ -19,6 +19,7 @@ interface Stats {
   top5:   { name: string; total: number; count: number }[]
   recent: { id: number; product_name: string; customer_name: string | null; total: number; status: string; created_at: string; batch_id: string | null }[]
   products: { total: number; withQb: number; noBarcode: number; noWeight: number }
+  operators: { userId: number | null; name: string; ordersCount: number; revenue: number; lastOrderAt: string | null }[]
 }
 
 function DashboardInner() {
@@ -44,15 +45,25 @@ function DashboardInner() {
       url.searchParams.set('to', customTo)
     }
 
-    apiFetch(url.toString())
-      .then(res => {
-        if (res.status === 401) { logout(); return null }
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        return res.json()
-      })
-      .then(data => { if (data) setStats(data) })
-      .catch(() => {})
-      .finally(() => setReady(true))
+    // Polling simple de 30s (2026-09-07) — refresca todo el objeto stats de
+    // una (KPIs, gráficas, Top 5, actividad reciente) con la misma llamada
+    // que ya existía. No resetea `ready` en los ticks siguientes para que no
+    // parpadee la pantalla — solo se usa en la carga inicial/cambio de filtro.
+    const fetchStats = () => {
+      apiFetch(url.toString())
+        .then(res => {
+          if (res.status === 401) { logout(); return null }
+          if (!res.ok) throw new Error(`Error ${res.status}`)
+          return res.json()
+        })
+        .then(data => { if (data) setStats(data) })
+        .catch(() => {})
+        .finally(() => setReady(true))
+    }
+
+    fetchStats()
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
   }, [period, customFrom, customTo])
 
   if (!ready) return null
@@ -75,6 +86,7 @@ function DashboardInner() {
         top5={stats?.top5 ?? []}
         recent={stats?.recent ?? []}
         products={stats?.products}
+        operators={stats?.operators ?? []}
       />
     </div>
   )

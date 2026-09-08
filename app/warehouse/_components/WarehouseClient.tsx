@@ -104,6 +104,10 @@ interface ReconciliationRow {
   returned_damaged_qty: number
   returned_expired_qty: number
   returned_transporter_damage_qty: number
+  // Fix (2026-09-07) — lo vendido/devuelto vía settleConsignment ya se
+  // resta de expected_return_qty/discrepancy en el backend; este campo es
+  // solo para mostrar de dónde sale ese ajuste en el desglose de la tabla.
+  consignment_settled_qty: number
   expected_return_qty: number
   discrepancy: number
 }
@@ -569,6 +573,7 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                       <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_DAMAGED')}</th>
                                       <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_EXPIRED')}</th>
                                       <th className="px-2 py-2 text-right font-bold">{t('wh_returnCondition_TRANSPORTER_DAMAGE')}</th>
+                                      <th className="px-2 py-2 text-right font-bold">{t('wh_consignmentSettled')}</th>
                                       <th className="px-3 py-2 text-right font-bold">{t('wh_discrepancy')}</th>
                                     </tr>
                                   </thead>
@@ -584,6 +589,7 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_damaged_qty || '—'}</td>
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_expired_qty || '—'}</td>
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_transporter_damage_qty || '—'}</td>
+                                          <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.consignment_settled_qty || '—'}</td>
                                           <td className={`px-3 py-2 text-right font-extrabold ${flag ? 'text-[var(--ec-danger)]' : 'text-[var(--ec-faint)]'}`}>
                                             {r.discrepancy}
                                           </td>

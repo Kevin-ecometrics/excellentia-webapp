@@ -16,6 +16,7 @@ interface Kpis { ordersPeriod: number; revenuePeriod: number; revenueTotal: numb
 interface RecentOrder { id: number; product_name: string; customer_name: string | null; total: number; status: string; created_at: string; batch_id: string | null }
 interface Top5Item { name: string; total: number; count: number }
 interface Products { total: number; withQb: number; noBarcode: number; noWeight: number }
+interface Operator { userId: number | null; name: string; ordersCount: number; revenue: number; lastOrderAt: string | null }
 
 type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom'
 
@@ -29,9 +30,10 @@ interface Props {
   top5:   Top5Item[]
   recent: RecentOrder[]
   products: Products | undefined
+  operators: Operator[]
 }
 
-export default function DashboardClient({ period, customFrom, customTo, kpis: k, byHour, byDay, top5, recent, products: prod }: Props) {
+export default function DashboardClient({ period, customFrom, customTo, kpis: k, byHour, byDay, top5, recent, products: prod, operators }: Props) {
   const { t } = useLang()
   const maxTop = top5[0]?.total ?? 1
 
@@ -183,6 +185,37 @@ export default function DashboardClient({ period, customFrom, customTo, kpis: k,
             </ul>
           )}
         </div>
+      </div>
+
+      {/* Tabla de operadores del período (2026-09-07) */}
+      <div className="mt-3 sm:mt-4 rounded-md bg-white border border-[var(--ec-border)] p-3 sm:p-5">
+        <p className="mb-3 sm:mb-4 text-xs sm:text-[13.5px] font-bold text-[var(--ec-ink)]">{t('dash_operators')} · {pLabel}</p>
+        {operators.length === 0 ? (
+          <p className="text-xs sm:text-sm text-[var(--ec-faint)] py-4 text-center">{t('dash_noOperators')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-[var(--ec-border)] text-[var(--ec-faint)]">
+                  <th className="px-2 py-2 text-left font-bold">{t('dash_opColOperator')}</th>
+                  <th className="px-2 py-2 text-right font-bold">{t('dash_opColOrders')}</th>
+                  <th className="px-2 py-2 text-right font-bold">{t('dash_opColRevenue')}</th>
+                  <th className="px-2 py-2 text-right font-bold">{t('dash_opColLastOrder')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {operators.map(op => (
+                  <tr key={op.userId ?? op.name} className="border-b border-[var(--ec-border)] last:border-0">
+                    <td className="px-2 py-2 font-medium text-[var(--ec-ink)]">{op.name}</td>
+                    <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{op.ordersCount}</td>
+                    <td className="px-2 py-2 text-right font-semibold text-[var(--ec-ink)]">{fmt(op.revenue)}</td>
+                    <td className="px-2 py-2 text-right text-[var(--ec-faint)]">{op.lastOrderAt ? fmtDate(op.lastOrderAt) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Products warning */}

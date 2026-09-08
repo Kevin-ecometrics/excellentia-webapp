@@ -130,7 +130,27 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
         </td>
       )}
       <td className="px-4 py-3">
-        <span className={`font-mono font-semibold ${stockColor}`}>{product.stock}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`font-mono font-semibold ${stockColor}`}>{product.stock}</span>
+          {product.stock === 0 ? (
+            <span className="inline-flex items-center gap-1 rounded bg-[var(--ec-danger-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--ec-danger)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              {t('prod_outOfStock')}
+            </span>
+          ) : product.stock <= 5 ? (
+            <span className="inline-flex items-center gap-1 rounded bg-[var(--ec-warn-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--ec-warn-ink)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+              </svg>
+              {t('prod_lowStock')}
+            </span>
+          ) : null}
+        </div>
       </td>
       {qbBadge}
       {isAdmin && (
