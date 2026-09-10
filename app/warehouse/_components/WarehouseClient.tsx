@@ -415,7 +415,7 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                             </div>
                           ) : (
                             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <select
                                   value={detail.status}
                                   onChange={e => setPendingStatus({ routeId: detail.id, newStatus: e.target.value })}
@@ -429,10 +429,25 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   className="rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
                                   {t('common_edit')}
                                 </button>
-                                <button onClick={() => setPendingCancelId(route.id)}
-                                  className="rounded border border-[var(--ec-danger)]/30 bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
-                                  {t('wh_cancelRoute')}
-                                </button>
+                                {/* Guard (2026-09-10) — mismo criterio que el backend
+                                    (deleteRoute): si alguna parada ya se entregó, ya
+                                    hay una venta real detrás y "cancelar la ruta" no
+                                    tiene forma de devolver ese stock (está vendido, no
+                                    perdido) — se oculta el botón en vez de dejar que el
+                                    admin choque con el 400 sin entender por qué no le
+                                    devolvió el stock. No depende de detail.status (una
+                                    ruta multi-parada puede seguir IN_PROGRESS con una
+                                    sola parada ya entregada). */}
+                                {detail.stops.some(s => s.status === 'DELIVERED') ? (
+                                  <span className="text-[11px] font-semibold text-[var(--ec-faint)]" title={t('wh_cancelBlockedDeliveredHint')}>
+                                    {t('wh_cancelBlockedDelivered')}
+                                  </span>
+                                ) : (
+                                  <button onClick={() => setPendingCancelId(route.id)}
+                                    className="rounded border border-[var(--ec-danger)]/30 bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)] transition">
+                                    {t('wh_cancelRoute')}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           )}

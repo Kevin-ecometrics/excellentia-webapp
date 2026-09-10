@@ -31,6 +31,7 @@ interface InventoryMovement {
   movement_type: MovementType
   quantity: number
   route_id: number | null
+  qb_synced: number | null
   created_at: string | null
   product_name: string | null
   sku: string | null
@@ -94,6 +95,7 @@ export default function InventoryClient() {
   const [movementsError, setMovementsError] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState<MovementType | null>(null)
+  const [retryingMovementId, setRetryingMovementId] = useState<number | null>(null)
 
   const fetchLots = useCallback(() => {
     apiFetch(`${API}/api/warehouse/lots?status=ACTIVE`)
@@ -120,6 +122,24 @@ export default function InventoryClient() {
 
   useEffect(() => { fetchLots() }, [fetchLots])
   useEffect(() => { fetchMovements(dateFilter) }, [dateFilter, fetchMovements])
+
+  // Reintenta el push a QBO de un movimiento puntual que quedó qb_synced = 0
+  // — actualiza esa fila en memoria en vez de refetchear toda la lista.
+  function retryMovementSync(movementId: number) {
+    setRetryingMovementId(movementId)
+    apiFetch(`${API}/api/warehouse/movements/${movementId}/retry-sync`, { method: 'POST' })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        return res.json()
+      })
+      .then(data => {
+        if (!data) return
+        setMovements(prev => prev.map(m => m.id === movementId ? { ...m, qb_synced: data.qb_synced } : m))
+      })
+      .catch(() => {})
+      .finally(() => setRetryingMovementId(null))
+  }
 
   function loadBackfillPreview() {
     setBackfillLoading(true)
@@ -391,7 +411,8 @@ export default function InventoryClient() {
               {typeFilter ? t('wh_noMovementsFilter') : t('wh_noMovements')}
             </div>
           ) : (
-            <MovementsList movements={filteredMovements} availableLotIds={availableLotIds} dayLabel={dayLabel} t={t} />
+            <MovementsList movements={filteredMovements} availableLotIds={availableLotIds} dayLabel={dayLabel} t={t}
+              isAdmin={isAdmin} retryingMovementId={retryingMovementId} onRetry={retryMovementSync} />
           )}
         </div>
       )}
@@ -400,12 +421,15 @@ export default function InventoryClient() {
 }
 
 function MovementsList({
-  movements, availableLotIds, dayLabel, t,
+  movements, availableLotIds, dayLabel, t, isAdmin, retryingMovementId, onRetry,
 }: {
   movements: InventoryMovement[]
   availableLotIds: Set<number>
   dayLabel: (dateKey: string) => string
   t: (key: any) => string
+  isAdmin: boolean
+  retryingMovementId: number | null
+  onRetry: (movementId: number) => void
 }) {
   let lastDateKey: string | null = null
   return (
@@ -438,6 +462,17 @@ function MovementsList({
                   <span className="rounded bg-[var(--ec-success-bg)] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.08em] uppercase text-[var(--ec-success-ink)]">
                     {t('wh_tabAvailable')}
                   </span>
+                )}
+                {m.qb_synced === 0 && (
+                  <span className="rounded bg-[var(--ec-danger-bg)] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.08em] uppercase text-[var(--ec-danger)]">
+                    {t('wh_qbNotSynced')}
+                  </span>
+                )}
+                {m.qb_synced === 0 && isAdmin && (
+                  <button onClick={() => onRetry(m.id)} disabled={retryingMovementId === m.id}
+                    className="text-[9.5px] font-extrabold uppercase tracking-[.08em] text-[var(--ec-danger)] hover:underline disabled:opacity-60">
+                    {retryingMovementId === m.id ? '…' : t('wh_retrySync')}
+                  </button>
                 )}
               </div>
               <p className={`mt-1.5 text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
