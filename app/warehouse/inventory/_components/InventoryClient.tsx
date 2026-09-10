@@ -10,6 +10,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 interface ProductLot {
   id: number
   product_id: number
+  receipt_batch_id: string
   barcode: string | null
   expiration_date: string | null
   received_qty: number
@@ -80,10 +81,12 @@ export default function InventoryClient() {
   // corra esto. Ver excellentia/src/controllers/warehouseController.ts
   // (backfillLots) para el detalle de por qué esto no toca products.stock.
   const [backfillPreview, setBackfillPreview] = useState<BackfillLine[] | null>(null)
+  const [backfillSelected, setBackfillSelected] = useState<Set<number>>(new Set())
   const [backfillLoading, setBackfillLoading] = useState(false)
   const [backfillApplying, setBackfillApplying] = useState(false)
   const [backfillError, setBackfillError] = useState('')
   const [backfillMsg, setBackfillMsg] = useState('')
+  const [deletingLotId, setDeletingLotId] = useState<number | null>(null)
 
   useEffect(() => { setIsAdmin(getUserInfo()?.role === 'admin') }, [])
 
@@ -132,18 +135,33 @@ export default function InventoryClient() {
         if (!res.ok) throw new Error(`Error ${res.status}`)
         return res.json()
       })
-      .then(data => { if (data) setBackfillPreview(data.data ?? []) })
+      .then(data => {
+        if (!data) return
+        const lines: BackfillLine[] = data.data ?? []
+        setBackfillPreview(lines)
+        setBackfillSelected(new Set(lines.map(l => l.product_id)))
+      })
       .catch(() => setBackfillError(t('wh_backfillError')))
       .finally(() => setBackfillLoading(false))
   }
 
+  function toggleBackfillSelected(productId: number) {
+    setBackfillSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
+
   function applyBackfill() {
+    if (backfillSelected.size === 0) return
     setBackfillApplying(true)
     setBackfillError('')
     apiFetch(`${API}/api/warehouse/lots/backfill?apply=true`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ product_ids: Array.from(backfillSelected) }),
     })
       .then(res => {
         if (res.status === 401) { logout(); return null }
@@ -153,11 +171,30 @@ export default function InventoryClient() {
       .then(data => {
         if (!data) return
         setBackfillPreview(null)
+        setBackfillSelected(new Set())
         setBackfillMsg(`${t('wh_backfillSuccess')} — ${data.summary?.count ?? 0}`)
         fetchLots()
       })
       .catch(() => setBackfillError(t('wh_backfillError')))
       .finally(() => setBackfillApplying(false))
+  }
+
+  // Elimina un lote creado por Backfill (identificable por el prefijo
+  // 'backfill-' en receipt_batch_id) — endpoint dedicado (deleteBackfillLot,
+  // warehouseController.ts) que rechaza cualquier lote que no venga de ahí,
+  // así este botón no puede usarse para borrar un lote de una recepción real.
+  function deleteBackfillLot(lotId: number) {
+    setDeletingLotId(lotId)
+    setLotsError('')
+    apiFetch(`${API}/api/warehouse/lots/${lotId}/backfill`, { method: 'DELETE' })
+      .then(res => {
+        if (res.status === 401) { logout(); return null }
+        if (!res.ok) return res.json().then(d => { throw new Error(d?.error ?? `Error ${res.status}`) })
+        return res.json()
+      })
+      .then(data => { if (data) fetchLots() })
+      .catch(err => setLotsError(err.message ?? t('wh_backfillDeleteError')))
+      .finally(() => setDeletingLotId(null))
   }
 
   // Lotes con stock real (> 0) ahora mismo — alimenta tanto "Disponible" como
@@ -242,20 +279,44 @@ export default function InventoryClient() {
                 <p className="mt-3 text-xs text-[var(--ec-faint)]">{t('wh_backfillNone')}</p>
               ) : (
                 <div className="mt-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ec-muted)]">
+                      <input type="checkbox"
+                        checked={backfillSelected.size === backfillPreview.length}
+                        onChange={e => setBackfillSelected(e.target.checked ? new Set(backfillPreview.map(l => l.product_id)) : new Set())}
+                      />
+                      {t('wh_backfillSelectAll')}
+                    </label>
+                    <span className="text-xs text-[var(--ec-faint)]">
+                      {backfillSelected.size}/{backfillPreview.length}
+                    </span>
+                  </div>
                   <div className="space-y-1.5">
                     {backfillPreview.map(line => (
-                      <div key={line.product_id} className="flex items-center justify-between gap-3 rounded border border-[var(--ec-border)] px-3 py-1.5">
-                        <p className="truncate text-xs font-semibold text-[var(--ec-ink)]">{line.name}</p>
+                      <label key={line.product_id} className="flex items-center justify-between gap-3 rounded border border-[var(--ec-border)] px-3 py-1.5 cursor-pointer">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <input type="checkbox"
+                            checked={backfillSelected.has(line.product_id)}
+                            onChange={() => toggleBackfillSelected(line.product_id)}
+                          />
+                          <span className="truncate text-xs font-semibold text-[var(--ec-ink)]">{line.name}</span>
+                        </span>
                         <span className="shrink-0 text-xs font-extrabold text-[var(--ec-warn-ink)]">
                           {line.gap.toFixed(2)} {t('wh_backfillColQty')}
                         </span>
-                      </div>
+                      </label>
                     ))}
                   </div>
-                  <button onClick={applyBackfill} disabled={backfillApplying}
-                    className="mt-3 rounded bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-dark disabled:opacity-60">
-                    {backfillApplying ? t('wh_backfillConfirming') : t('wh_backfillConfirm')}
-                  </button>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button onClick={applyBackfill} disabled={backfillApplying || backfillSelected.size === 0}
+                      className="rounded bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-dark disabled:opacity-60">
+                      {backfillApplying ? t('wh_backfillConfirming') : `${t('wh_backfillConfirm')} (${backfillSelected.size})`}
+                    </button>
+                    <button onClick={() => { setBackfillPreview(null); setBackfillSelected(new Set()) }} disabled={backfillApplying}
+                      className="text-xs font-semibold text-[var(--ec-muted)] hover:text-[var(--ec-ink)] disabled:opacity-60">
+                      {t('common_cancel')}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -280,10 +341,20 @@ export default function InventoryClient() {
                   <div className="mt-2 space-y-1">
                     {g.lots.map(lot => {
                       const expiringSoon = lot.expiration_date != null && isExpiringSoon(lot.expiration_date)
+                      const isBackfill = lot.receipt_batch_id?.startsWith('backfill-')
                       return (
-                        <p key={lot.id} className={`text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
-                          • {lot.expiration_date ? `${t('wh_expires')} ${lot.expiration_date.slice(0, 10)}` : t('wh_noExpiration')} · {Number(lot.remaining_qty).toFixed(2)} {t('wh_qtyAvailable')}
-                        </p>
+                        <div key={lot.id} className="flex items-center justify-between gap-2">
+                          <p className={`text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
+                            • {lot.expiration_date ? `${t('wh_expires')} ${lot.expiration_date.slice(0, 10)}` : t('wh_noExpiration')} · {Number(lot.remaining_qty).toFixed(2)} {t('wh_qtyAvailable')}
+                            {isBackfill && <span className="ml-1.5 text-[var(--ec-faint)]">({t('wh_backfillTag')})</span>}
+                          </p>
+                          {isAdmin && isBackfill && (
+                            <button onClick={() => deleteBackfillLot(lot.id)} disabled={deletingLotId === lot.id}
+                              className="shrink-0 text-xs font-semibold text-[var(--ec-danger)] hover:underline disabled:opacity-60">
+                              {deletingLotId === lot.id ? '…' : t('wh_backfillDelete')}
+                            </button>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
