@@ -193,6 +193,20 @@ function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
 
+// batch.total conserva el precio de catálogo de los ítems cortesía (Fase
+// 115.5) — hay que restarlos para que el total mostrado coincida con lo que
+// realmente se factura en QBO (línea de cortesía sale a $0 ahí). Mismo
+// cálculo que ya usa el modal de Ticket (courtesyTotal, más arriba).
+function courtesyTotalOf(batch: Batch): number {
+  return batch.orders
+    .filter(o => !!o.is_courtesy)
+    .reduce((sum, o) => sum + Number(o.total), 0)
+}
+
+function netBatchTotal(batch: Batch): number {
+  return batch.total - courtesyTotalOf(batch) - batch.damageCredits - (batch.creditApplied ?? 0)
+}
+
 function groupBatches(orders: OrderRow[]): Batch[] {
   const map = new Map<string, OrderRow[]>()
   for (const o of orders) {
@@ -639,7 +653,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
           <>
             {t('ord_approveConfirmBody')
               .replace('{customer}', approveBatch.customerName ?? t('ord_noCustomer'))
-              .replace('{total}', fmt(approveBatch.total - approveBatch.damageCredits - (approveBatch.creditApplied ?? 0)))}
+              .replace('{total}', fmt(netBatchTotal(approveBatch)))}
             {approveBatch.routeName && (
               <span className="mt-2 block text-xs text-[var(--ec-faint)]">
                 {t('ord_route')}: {approveBatch.routeName}
@@ -832,7 +846,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                         {batch.orders.length} {t('ord_items')}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono font-bold text-[var(--ec-ink)]">{fmt(batch.total - batch.damageCredits - (batch.creditApplied ?? 0))}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[var(--ec-ink)]">{fmt(netBatchTotal(batch))}</td>
                     <td className="px-4 py-3">
                       {batch.paymentMethod ? (
                         <div className="flex flex-col items-start gap-0.5">
