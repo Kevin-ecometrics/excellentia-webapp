@@ -8,6 +8,11 @@ import ConfirmModal from '../../warehouse/_components/ConfirmModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
+// Oculto temporalmente hasta decidir el criterio correcto — ver
+// nearest_expiration en orderController.ts (lotes agotados con expiration vieja
+// dominaban el MIN). Volver a true restaura la columna.
+const SHOW_EXPIRES_COLUMN = false
+
 interface Props {
   orders: OrderRow[]
   fetchError: string
@@ -34,6 +39,16 @@ interface Batch {
   routeId: number | null
   routeName: string | null
   routeDate: string | null
+  approvedByName: string | null
+  approvedAt: string | null
+  voidedByName: string | null
+  voidedAt: string | null
+  voidReason: string | null
+  lastEditedBy: string | null
+  lastEditedAt: string | null
+  feedbackNote: string | null
+  feedbackAt: string | null
+  feedbackByName: string | null
 }
 
 interface DamageItem {
@@ -60,6 +75,24 @@ function isLbsUnit(unit: string | null | undefined): boolean {
 function formatDamageQty(qty: number, unit: string | null | undefined): string {
   const q = Number(qty) || 0
   return isLbsUnit(unit) ? `${q.toFixed(2)} lb` : `${Math.round(q)} unit(s)`
+}
+
+// Espeja formatCourtesyQty()/displayUnitsOf() de la app Android
+// (data/Models.kt, Fase 120) — mismo criterio en las dos para que el ticket
+// de la webapp coincida con el que ve el vendedor. Una fila de cortesía en
+// `orders` viene con `quantity` en escala de CAJAS (courtesyRowsFor(),
+// backend) porque es el resultado de dividir pagada/cortesía — sin
+// reconvertir a unidades individuales acá, "regalar 12 de 24 unidades"
+// (quantity=0.5) se mostraba como "1 unit(s)" (Math.round(0.5)) en vez de
+// "12 individual unit(s)".
+function displayUnitsOf(quantity: number, unit: string | null | undefined, caseQty: number | null | undefined): number {
+  const caseSize = isLbsUnit(unit) ? 1 : (Number(caseQty) || 1)
+  return Number(quantity) * caseSize
+}
+
+function formatCourtesyQty(qty: number, unit: string | null | undefined): string {
+  const q = Number(qty) || 0
+  return isLbsUnit(unit) ? `${q.toFixed(2)} lb` : `${Math.round(q)} individual unit(s)`
 }
 
 // ── Ticket: agrupación por categoría de unidad (LBS / CASE-UNIT / BUCKET) ──
@@ -241,6 +274,16 @@ function groupBatches(orders: OrderRow[]): Batch[] {
       routeId: items[0]?.route_id ?? null,
       routeName: items[0]?.route_name ?? null,
       routeDate: items[0]?.route_date ?? null,
+      approvedByName: items[0]?.approved_by_name ?? null,
+      approvedAt: items[0]?.approved_at ?? null,
+      voidedByName: items[0]?.voided_by_name ?? null,
+      voidedAt: items[0]?.voided_at ?? null,
+      voidReason: items[0]?.void_reason ?? null,
+      lastEditedBy: items[0]?.last_edited_by ?? null,
+      lastEditedAt: items[0]?.last_edited_at ?? null,
+      feedbackNote: items[0]?.feedback_note ?? null,
+      feedbackAt: items[0]?.feedback_at ?? null,
+      feedbackByName: items[0]?.feedback_by_name ?? null,
     }
   })
 }
@@ -286,6 +329,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
   const [ticketBatch, setTicketBatch] = useState<Batch | null>(null)
   const [ticketDamageItems, setTicketDamageItems] = useState<DamageItem[]>([])
   const [ticketSignature, setTicketSignature] = useState<string | null>(null)
+  // Fase 120 — nota de feedback obligatoria de Android, botón propio al lado
+  // del ticket (antes solo se veía truncada como metadata bajo el batch).
+  const [feedbackBatch, setFeedbackBatch] = useState<Batch | null>(null)
   const [expandedDamage, setExpandedDamage] = useState<Map<string, DamageItem[]>>(new Map())
   const [batchSignatures, setBatchSignatures] = useState<Map<string, boolean>>(new Map())
   const [exporting, setExporting] = useState(false)
@@ -540,7 +586,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                 <p className="font-bold">{t('tkt_courtesySummary')}</p>
                 {ticketBatch.orders.filter(o => !!o.is_courtesy).map((o, i) => (
                   <p key={i} className="pl-2">
-                    {o.product_name}: {formatDamageQty(o.quantity, o.unit)} · {fmt(-Number(o.total))}
+                    {o.product_name}: {formatCourtesyQty(displayUnitsOf(o.quantity, o.unit, o.case_qty), o.unit)} · {fmt(-Number(o.total))}
                   </p>
                 ))}
               </>
@@ -639,6 +685,36 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
               <div className="h-10" />
             )}
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* Modal feedback — nota obligatoria de Android tras el segundo ticket
+        (Fase 120), botón propio al lado del ticket para tenerlo más completo:
+        quién la dejó y cuándo, no solo el texto truncado. */}
+    {feedbackBatch && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-[rgba(0,51,50,.5)]" onClick={() => setFeedbackBatch(null)} />
+        <div className="relative w-full max-w-sm rounded-lg bg-white shadow-2xl overflow-hidden p-5">
+          <button onClick={() => setFeedbackBatch(null)}
+            className="absolute right-4 top-4 z-10 rounded-full p-1 text-[var(--ec-faint)] hover:bg-[var(--ec-surface-alt)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[var(--ec-info-ink)]">{t('ord_feedback')}</p>
+          <p className="mb-3 text-xs text-[var(--ec-faint)]">
+            {feedbackBatch.customerName ?? t('ord_noCustomer')} · #{feedbackBatch.batchId.slice(-8).toUpperCase()}
+          </p>
+          <p className="whitespace-pre-wrap rounded border border-[var(--ec-border)] bg-[var(--ec-surface-alt)] p-3 text-sm text-[var(--ec-ink)]">
+            {feedbackBatch.feedbackNote}
+          </p>
+          {(feedbackBatch.feedbackByName || feedbackBatch.feedbackAt) && (
+            <p className="mt-2 text-[11px] text-[var(--ec-faint)]">
+              {feedbackBatch.feedbackByName && `${t('ord_lastEditedBy')} ${feedbackBatch.feedbackByName}`}
+              {feedbackBatch.feedbackAt ? ` · ${feedbackBatch.feedbackAt.slice(0, 16).replace('T', ' ')}` : ''}
+            </p>
+          )}
         </div>
       </div>
     )}
@@ -832,8 +908,34 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                               </span>
                             )}
                           </div>
+                          {/* routes.scheduled_date es DATE en MySQL — mysql2 lo devuelve
+                              como objeto Date, que serializa a JSON con hora/zona
+                              ("2026-09-18T04:00:00.000Z") aunque la columna no tenga hora
+                              real. .slice(0, 10) se queda solo con la fecha, mismo
+                              criterio que ya usa esta pantalla para otros timestamps. */}
                           {batch.routeName && (
-                            <p className="text-[10px] text-[var(--ec-faint)]">🚚 {batch.routeName}{batch.routeDate ? ` · ${batch.routeDate}` : ''}</p>
+                            <p className="text-[10px] text-[var(--ec-faint)]">🚚 {batch.routeName}{batch.routeDate ? ` · ${batch.routeDate.slice(0, 10)}` : ''}</p>
+                          )}
+                          {/* Fase 120 — quién editó/canceló una venta, pedido explícito
+                              del usuario para poder auditar sin ir a la base de datos. */}
+                          {batch.status === 'CANCELLED' && batch.voidedByName && (
+                            <p className="text-[10px] text-[var(--ec-danger)]">
+                              {t('ord_cancelledBy')} {batch.voidedByName}
+                              {batch.voidedAt ? ` · ${batch.voidedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                              {batch.voidReason ? ` — "${batch.voidReason}"` : ''}
+                            </p>
+                          )}
+                          {batch.status === 'SENT' && batch.approvedByName && (
+                            <p className="text-[10px] text-[var(--ec-faint)]">
+                              {t('ord_approvedBy')} {batch.approvedByName}
+                              {batch.approvedAt ? ` · ${batch.approvedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                            </p>
+                          )}
+                          {batch.lastEditedBy && (
+                            <p className="text-[10px] text-[var(--ec-faint)]">
+                              {t('ord_lastEditedBy')} {batch.lastEditedBy}
+                              {batch.lastEditedAt ? ` · ${batch.lastEditedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -899,6 +1001,18 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                             </svg>
                             {t('ord_ticket')}
                           </button>
+                        {/* Fase 120 — nota de feedback obligatoria de Android tras el
+                            segundo ticket, con su propio botón/modal (antes solo se
+                            veía truncada como metadata bajo el batch). */}
+                        {batch.feedbackNote && (
+                          <button onClick={() => setFeedbackBatch(batch)}
+                            className="flex items-center gap-1 rounded border border-[var(--ec-info-ink)]/30 bg-[var(--ec-info-bg)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--ec-info-ink)] hover:opacity-80 transition">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            {t('ord_feedback')}
+                          </button>
+                        )}
                         {canApprove && (
                           <button onClick={() => setApproveBatch(batch)}
                             className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-[11px] font-bold text-white hover:bg-primary-dark active:scale-[0.98] transition">
@@ -948,11 +1062,21 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                                 <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Price</th>
                                 <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Total</th>
                                 <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Status</th>
+                                {/* Vencimiento aproximado — el más próximo entre los lotes
+                                    ACTIVOS de este producto hoy, no el lote real vendido en
+                                    esta línea (orders no guarda esa trazabilidad, ver
+                                    nearest_expiration en listOrders/orderController.ts). */}
+                                {SHOW_EXPIRES_COLUMN && batch.orders.some(o => o.nearest_expiration) && (
+                                  <th className="px-3 py-2 text-left font-bold text-[var(--ec-faint)] uppercase tracking-wide">Expires (approx.)</th>
+                                )}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--ec-divider)]">
                               {batch.orders.map(o => {
                                 const sCfg = statusCfg[o.status] ?? statusCfg.PENDING
+                                const expSoon = o.nearest_expiration
+                                  ? (new Date(o.nearest_expiration).getTime() - Date.now()) / 86400000 <= 7
+                                  : false
                                 return (
                                   <tr key={o.id} className="hover:bg-[var(--ec-surface-alt)]/60">
                                     <td className="px-3 py-2 font-medium text-[var(--ec-ink)]">{o.product_name}</td>
@@ -970,6 +1094,17 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                                         {sCfg.label}
                                       </span>
                                     </td>
+                                    {SHOW_EXPIRES_COLUMN && batch.orders.some(x => x.nearest_expiration) && (
+                                      <td className="px-3 py-2 font-mono">
+                                        {o.nearest_expiration ? (
+                                          <span className={expSoon ? 'text-[var(--ec-danger)] font-semibold' : 'text-[var(--ec-muted)]'}>
+                                            {o.nearest_expiration.slice(0, 10)}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[var(--ec-faint)]">—</span>
+                                        )}
+                                      </td>
+                                    )}
                                   </tr>
                                 )
                               })}

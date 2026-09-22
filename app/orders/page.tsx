@@ -34,6 +34,23 @@ export interface OrderRow {
   // (reportería); el $0 se aplica solo en la línea de QBO, no acá.
   is_courtesy: boolean | number
   created_at: string
+  // Fase 120 — quién editó/canceló una venta, para mostrar en el dashboard.
+  approved_by: number | null
+  approved_at: string | null
+  approved_by_name: string | null
+  voided_by: number | null
+  voided_at: string | null
+  void_reason: string | null
+  voided_by_name: string | null
+  last_edited_by: string | null
+  last_edited_at: string | null
+  // Fase 120 — nota de feedback obligatoria de Android tras el 2do ticket.
+  feedback_note: string | null
+  feedback_at: string | null
+  feedback_by_name: string | null
+  // Fase 120 (addendum) — vencimiento aproximado: el más próximo entre los
+  // lotes ACTIVOS del producto hoy, no el lote real vendido en esta línea.
+  nearest_expiration: string | null
 }
 
 export interface CompanyInfo {

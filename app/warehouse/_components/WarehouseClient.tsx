@@ -29,6 +29,8 @@ interface Stop {
   customer_id: string | null
   customer_name: string | null
   status: string
+  // Fase 120 — motivo obligatorio al saltear una parada; NULL salvo status='SKIPPED'.
+  skip_reason?: string | null
   batch?: { batch_id: string; total: number; status: string; item_count: number; qb_invoice_id: string | null } | null
   preOrder?: { id: number; status: string; scheduled_date: string | null } | null
 }
@@ -54,6 +56,10 @@ interface RouteItem {
   id: number
   route_id: number
   product_id: number
+  // route_stop_id (2026-09-18) — a qué parada/cliente corresponde esta
+  // línea cargada; obligatorio desde esta fecha (null solo si se borró la
+  // parada después de cargar).
+  route_stop_id: number | null
   barcode: string | null
   quantity: number
   name: string
@@ -98,6 +104,10 @@ interface ReconciliationRow {
   product_id: number
   name: string
   sku: string | null
+  // route_stop_id (2026-09-18) — cada producto ahora puede aparecer una vez
+  // por parada (desglose por cliente) en vez de un solo total por ruta.
+  route_stop_id: number | null
+  customer_name: string | null
   loaded_qty: number
   sold_qty: number
   returned_good_qty: number
@@ -479,6 +489,14 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                       </p>
                                     </div>
                                   </div>
+                                  {/* Fase 120 — motivo obligatorio al saltear una parada, visible
+                                      acá para que el admin sepa por qué sin tener que preguntar. */}
+                                  {stop.status === 'SKIPPED' && (
+                                    <div className="mt-2 rounded-md border border-[var(--ec-danger)]/25 bg-[var(--ec-danger-bg)] px-2.5 py-1.5 text-xs text-[var(--ec-danger)]">
+                                      <span className="font-extrabold uppercase tracking-[.08em]">{t('wh_skipped')}</span>
+                                      {stop.skip_reason && <span> — {stop.skip_reason}</span>}
+                                    </div>
+                                  )}
                                   {/* Fase 115.4 — solo lectura: registrar/liquidar es Android-only. */}
                                   {stop.stop_type === 'CONSIGNMENT' && (consignmentByStop.get(stop.id)?.length ?? 0) > 0 && (
                                     <div className="mt-2 space-y-1 border-t border-[var(--ec-border)] pt-2">
@@ -505,12 +523,15 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                             <p className="text-sm text-[var(--ec-faint)]">{t('wh_noItems')}</p>
                           ) : (
                             <div className="space-y-2">
-                              {detail.items.map(item => (
+                              {detail.items.map(item => {
+                                const forStop = detail.stops.find(s => s.id === item.route_stop_id)
+                                return (
                                 <div key={item.id} className="flex items-center gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-2.5">
                                   <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{item.name}</p>
                                     <p className="text-xs text-[var(--ec-faint)]">
                                       {item.sku ?? item.barcode ?? '—'}{item.unit && ` · ${item.unit}`}
+                                      {forStop && ` · ${forStop.customer_name ?? '—'}`}
                                     </p>
                                     <p className="mt-0.5 text-[11px] text-[var(--ec-success-ink)]">
                                       {t('wh_loadedOn')} {item.created_at.slice(0, 16).replace('T', ' ')}
@@ -522,7 +543,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                     {item.quantity}
                                   </span>
                                 </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           )}
 
@@ -596,8 +618,11 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                     {reconciliation.map(r => {
                                       const flag = !!detail.returns_reviewed_at && r.discrepancy !== 0
                                       return (
-                                        <tr key={r.product_id} className="border-b border-[var(--ec-border)] last:border-0">
-                                          <td className="px-3 py-2 font-semibold text-[var(--ec-ink)]">{r.name}</td>
+                                        <tr key={`${r.product_id}-${r.route_stop_id}`} className="border-b border-[var(--ec-border)] last:border-0">
+                                          <td className="px-3 py-2 font-semibold text-[var(--ec-ink)]">
+                                            {r.name}
+                                            {r.customer_name && <span className="ml-1.5 font-normal text-[var(--ec-faint)]">· {r.customer_name}</span>}
+                                          </td>
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.loaded_qty}</td>
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.sold_qty}</td>
                                           <td className="px-2 py-2 text-right text-[var(--ec-muted)]">{r.returned_good_qty || '—'}</td>

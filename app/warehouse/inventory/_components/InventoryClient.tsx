@@ -12,6 +12,8 @@ interface ProductLot {
   product_id: number
   receipt_batch_id: string
   barcode: string | null
+  // Fase 120 (addendum) — número de lote real del proveedor, distinto de `id`.
+  lot_number: string | null
   expiration_date: string | null
   received_qty: number
   remaining_qty: number
@@ -365,7 +367,7 @@ export default function InventoryClient() {
                       return (
                         <div key={lot.id} className="flex items-center justify-between gap-2">
                           <p className={`text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
-                            • {lot.expiration_date ? `${t('wh_expires')} ${lot.expiration_date.slice(0, 10)}` : t('wh_noExpiration')} · {Number(lot.remaining_qty).toFixed(2)} {t('wh_qtyAvailable')}
+                            • {lot.lot_number ? `${t('wh_lot')} ${lot.lot_number} · ` : ''}{lot.expiration_date ? `${t('wh_expires')} ${lot.expiration_date.slice(0, 10)}` : t('wh_noExpiration')} · {Number(lot.remaining_qty).toFixed(2)} {t('wh_qtyAvailable')}
                             {isBackfill && <span className="ml-1.5 text-[var(--ec-faint)]">({t('wh_backfillTag')})</span>}
                           </p>
                           {isAdmin && isBackfill && (

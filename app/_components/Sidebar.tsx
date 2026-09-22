@@ -13,6 +13,7 @@ const navItems = {
   dashboard: { href: '/dashboard', roles: ['admin'] as Role[], icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
   orders:    { href: '/orders',    roles: ['admin', 'operator', 'almacenista'] as Role[], icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></> },
   warehouse: { href: '/warehouse', roles: ['admin', 'almacenista'] as Role[], icon: <><path d="M3 9l9-6 9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></> },
+  routes:    { href: '/routes',    roles: ['admin'] as Role[], icon: <><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8a4 4 0 0 0 4-4v-1a4 4 0 0 0-4-4H7a4 4 0 0 1-4-4v-1"/></> },
   products:  { href: '/products',  roles: ['admin', 'operator'] as Role[], icon: <><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></> },
   customers: { href: '/customers', roles: ['admin'] as Role[], icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> },
   credits:   { href: '/credits',   roles: ['admin'] as Role[], icon: <><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M9.5 15.5a2.5 2.5 0 0 0 2.5 1.5c1.5 0 2.5-.8 2.5-2s-1-1.7-2.5-2-2.5-.8-2.5-2 1-2 2.5-2a2.5 2.5 0 0 1 2.5 1.5"/></> },
@@ -40,13 +41,14 @@ export default function Sidebar({ user }: { user: CurrentUser }) {
 
   const groups = [
     { labelKey: 'nav_general' as const, keys: ['dashboard', 'orders', 'warehouse', 'products'] as const },
-    { labelKey: 'nav_admin' as const,   keys: ['customers', 'credits', 'users', 'settings'] as const },
+    { labelKey: 'nav_admin' as const,   keys: ['routes', 'customers', 'credits', 'users', 'settings'] as const },
   ]
 
   const navLabels: Record<keyof typeof navItems, string> = {
     dashboard: t('nav_dashboard'),
     orders:    t('nav_orders'),
     warehouse: t('nav_warehouse'),
+    routes:    t('nav_routes'),
     products:  t('nav_products'),
     customers: t('nav_customers'),
     credits:   t('nav_credits'),
