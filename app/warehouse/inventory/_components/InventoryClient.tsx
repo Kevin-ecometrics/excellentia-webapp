@@ -14,6 +14,8 @@ interface ProductLot {
   barcode: string | null
   // Fase 120 (addendum) — número de lote real del proveedor, distinto de `id`.
   lot_number: string | null
+  // Backlog cliente (2026-09-23) — de qué proveedor vino este lote.
+  supplier: string | null
   expiration_date: string | null
   received_qty: number
   remaining_qty: number
@@ -21,6 +23,11 @@ interface ProductLot {
   received_at: string | null
   product_name: string | null
   sku: string | null
+  unit: string | null
+  // Backlog cliente (2026-09-23) — peso esperado de una caja completa
+  // (catálogo), para "≈ N cajas" — puramente informativo, mismo criterio
+  // que ProductRow.tsx en /products.
+  weight_per_unit: number | null
 }
 
 type MovementType = 'RECEIPT' | 'ROUTE_LOAD' | 'RETURN' | 'DAMAGE' | 'ADJUSTMENT'
@@ -235,6 +242,8 @@ export default function InventoryClient() {
       .map(([productId, group]) => ({
         productId,
         name: group[0].product_name ?? group[0].sku ?? `#${productId}`,
+        unit: group[0].unit,
+        weightPerUnit: group[0].weight_per_unit,
         total: group.reduce((sum, l) => sum + Number(l.remaining_qty), 0),
         // Mismo orden FIFO que usa el backend al cargar una ruta.
         lots: [...group].sort((a, b) => {
@@ -360,6 +369,30 @@ export default function InventoryClient() {
                       {g.total.toFixed(2)} {t('wh_qtyAvailable')}
                     </span>
                   </div>
+                  {/* Backlog cliente (2026-09-23) — "≈ N cajas" para Lbs, mismo
+                      criterio que ProductRow.tsx (/products): puramente
+                      informativo, nunca exacto (las cajas reales no siempre
+                      pesan el nominal del catálogo). */}
+                  {g.unit === 'Lbs' && g.weightPerUnit != null && g.weightPerUnit > 0 && (
+                    <p className="mt-0.5 text-[11px] text-[var(--ec-faint)]">
+                      {t('wh_approxBoxes').replace('{n}', (g.total / g.weightPerUnit).toFixed(1))}
+                    </p>
+                  )}
+                  {/* Backlog cliente #4 (2026-09-23) — el cliente reportó que no
+                      queda claro cuándo un producto tiene lotes con fechas de
+                      vencimiento DISTINTAS entre sí. Badge solo cuando de
+                      verdad hay más de una fecha distinta (varios lotes que
+                      vencen el mismo día no cuentan). */}
+                  {(() => {
+                    const distinctExpirations = Array.from(
+                      new Set(g.lots.map(l => l.expiration_date?.slice(0, 10)).filter(Boolean))
+                    )
+                    return distinctExpirations.length > 1 ? (
+                      <p className="mt-0.5 text-[11px] font-semibold text-[var(--ec-warn-ink)]">
+                        {t('wh_multipleExpirations').replace('{n}', String(distinctExpirations.length))}
+                      </p>
+                    ) : null
+                  })()}
                   <div className="mt-2 space-y-1">
                     {g.lots.map(lot => {
                       const expiringSoon = lot.expiration_date != null && isExpiringSoon(lot.expiration_date)
@@ -368,6 +401,8 @@ export default function InventoryClient() {
                         <div key={lot.id} className="flex items-center justify-between gap-2">
                           <p className={`text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
                             • {lot.lot_number ? `${t('wh_lot')} ${lot.lot_number} · ` : ''}{lot.expiration_date ? `${t('wh_expires')} ${lot.expiration_date.slice(0, 10)}` : t('wh_noExpiration')} · {Number(lot.remaining_qty).toFixed(2)} {t('wh_qtyAvailable')}
+                            {/* Backlog cliente (2026-09-23) — de qué proveedor vino este lote. */}
+                            {lot.supplier && ` · ${t('wh_supplier')} ${lot.supplier}`}
                             {isBackfill && <span className="ml-1.5 text-[var(--ec-faint)]">({t('wh_backfillTag')})</span>}
                           </p>
                           {isAdmin && isBackfill && (

@@ -151,6 +151,16 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
             </span>
           ) : null}
         </div>
+        {/* Backlog cliente (2026-09-22) — para Lbs, `stock` es peso real (lbs),
+            no cajas. "≈ N cajas" es solo una referencia visual (peso /
+            weight_per_unit nominal del catálogo) — las cajas reales no
+            siempre pesan exactamente lo que dice el catálogo (por eso se
+            pesan en Recepción), así que esto nunca reemplaza el número real. */}
+        {product.unit === 'Lbs' && product.weight_per_unit != null && Number(product.weight_per_unit) > 0 && (
+          <p className="mt-0.5 text-[10px] text-[var(--ec-faint)]">
+            {t('prod_approxCases').replace('{n}', (Number(product.stock) / Number(product.weight_per_unit)).toFixed(1))}
+          </p>
+        )}
       </td>
       {qbBadge}
       {isAdmin && (
