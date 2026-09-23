@@ -712,7 +712,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
           {(feedbackBatch.feedbackByName || feedbackBatch.feedbackAt) && (
             <p className="mt-2 text-[11px] text-[var(--ec-faint)]">
               {feedbackBatch.feedbackByName && `${t('ord_lastEditedBy')} ${feedbackBatch.feedbackByName}`}
-              {feedbackBatch.feedbackAt ? ` · ${feedbackBatch.feedbackAt.slice(0, 16).replace('T', ' ')}` : ''}
+              {feedbackBatch.feedbackAt ? ` · ${fmtDate(feedbackBatch.feedbackAt)}` : ''}
             </p>
           )}
         </div>
@@ -921,20 +921,20 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                           {batch.status === 'CANCELLED' && batch.voidedByName && (
                             <p className="text-[10px] text-[var(--ec-danger)]">
                               {t('ord_cancelledBy')} {batch.voidedByName}
-                              {batch.voidedAt ? ` · ${batch.voidedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                              {batch.voidedAt ? ` · ${fmtDate(batch.voidedAt)}` : ''}
                               {batch.voidReason ? ` — "${batch.voidReason}"` : ''}
                             </p>
                           )}
                           {batch.status === 'SENT' && batch.approvedByName && (
                             <p className="text-[10px] text-[var(--ec-faint)]">
                               {t('ord_approvedBy')} {batch.approvedByName}
-                              {batch.approvedAt ? ` · ${batch.approvedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                              {batch.approvedAt ? ` · ${fmtDate(batch.approvedAt)}` : ''}
                             </p>
                           )}
                           {batch.lastEditedBy && (
                             <p className="text-[10px] text-[var(--ec-faint)]">
                               {t('ord_lastEditedBy')} {batch.lastEditedBy}
-                              {batch.lastEditedAt ? ` · ${batch.lastEditedAt.slice(0, 16).replace('T', ' ')}` : ''}
+                              {batch.lastEditedAt ? ` · ${fmtDate(batch.lastEditedAt)}` : ''}
                             </p>
                           )}
                         </div>

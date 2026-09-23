@@ -138,6 +138,19 @@ const STATUS_BADGE: Record<string, string> = {
   CANCELLED:   'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]',
 }
 
+// Fix (2026-09-23) — created_at es TIMESTAMP (UTC real); antes se recortaba
+// el string crudo (`slice(0,16).replace('T',' ')`), mostrando la hora UTC
+// directo sin convertir a la zona horaria del navegador (mismo bug
+// reportado y corregido en OrdersClient.tsx).
+function fmtDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('en-US', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    })
+  } catch { return '' }
+}
+
 // Espeja canTransitionStatus() del backend (routeController.ts) — forward-only,
 // sin retroceder, CANCELLED es terminal y no se puede cancelar una ruta ya
 // COMPLETED. Se repite acá solo para decidir qué opciones mostrar en el
@@ -534,7 +547,7 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                       {forStop && ` · ${forStop.customer_name ?? '—'}`}
                                     </p>
                                     <p className="mt-0.5 text-[11px] text-[var(--ec-success-ink)]">
-                                      {t('wh_loadedOn')} {item.created_at.slice(0, 16).replace('T', ' ')}
+                                      {t('wh_loadedOn')} {fmtDate(item.created_at)}
                                       {item.loaded_by_name && ` · ${t('wh_loadedBy')} ${item.loaded_by_name}`}
                                       {' — '}{t('wh_loadedConfirmed')}
                                     </p>

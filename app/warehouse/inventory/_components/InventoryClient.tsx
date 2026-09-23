@@ -69,6 +69,19 @@ const MOVEMENT_BADGE: Record<MovementType, string> = {
   ADJUSTMENT: 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
 }
 
+// Fix (2026-09-23) — created_at es TIMESTAMP (UTC real); antes de esto se
+// recortaba el string crudo (`slice(0,16).replace('T',' ')`), mostrando la
+// hora UTC directo sin convertir a la zona horaria del navegador (mismo bug
+// reportado y corregido en OrdersClient.tsx).
+function fmtDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('en-US', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    })
+  } catch { return '' }
+}
+
 // ≤7 días — mismo umbral que Android, para no tener dos criterios de "pronto
 // a vencer" distintos entre las dos partes.
 function isExpiringSoon(dateStr: string): boolean {
@@ -513,7 +526,7 @@ function MovementsList({
                 )}
               </div>
               <p className={`mt-1.5 text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
-                {m.created_at?.slice(0, 16).replace('T', ' ')}
+                {m.created_at && fmtDate(m.created_at)}
                 {exp && ` · ${t('wh_expires')} ${exp}`}
                 {m.route_id != null && ` · ${t('wh_routeRef')} #${m.route_id}`}
               </p>

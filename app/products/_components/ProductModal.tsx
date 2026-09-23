@@ -60,7 +60,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
     if (!form.name.trim() || form.name.trim().length < 2) errs.name = t('val_min2')
     const price = parseFloat(form.price)
     if (!form.price || isNaN(price) || price <= 0) errs.price = t('val_pricePos')
-    const stock = parseInt(form.stock)
+    const stock = parseFloat(form.stock)
     const stockUnchanged = isEdit && form.stock === product!.stock.toString()
     if ((isNaN(stock) || stock < 0) && !stockUnchanged) errs.stock = t('val_stockNeg')
     if (form.weight_per_unit && (isNaN(parseFloat(form.weight_per_unit)) || parseFloat(form.weight_per_unit) < 0))
@@ -88,7 +88,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
       body.unit = form.unit || null
       body.qty = parseInt(form.qty) || 0
       body.weight_per_unit = form.weight_per_unit ? parseFloat(form.weight_per_unit) : null
-      body.stock = parseInt(form.stock) || 0
+      body.stock = parseFloat(form.stock) || 0
       body.description = form.description.trim() || null
 
       const url = isEdit ? `${API}/api/products/${product!.id}` : `${API}/api/products`
@@ -210,7 +210,7 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-[11.5px] font-bold uppercase tracking-[.09em] text-[#5A5049]">{t('modal_stock')}</label>
-              <input type="number" step="1" value={form.stock} onChange={e => set('stock', e.target.value)}
+              <input type="number" step="0.01" value={form.stock} onChange={e => set('stock', e.target.value)}
                 className={fieldErrors.stock ? inpErr : inp} placeholder="0" />
               {fieldErrors.stock && <p className="mt-1 text-xs text-[var(--ec-danger)]">{fieldErrors.stock}</p>}
             </div>
