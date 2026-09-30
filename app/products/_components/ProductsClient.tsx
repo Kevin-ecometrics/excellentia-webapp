@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import type { Product } from '../page'
 import ProductRow from './ProductRow'
 import ProductModal from './ProductModal'
+import BarcodeModal from './BarcodeModal'
 import PricingInfoModal from './PricingInfoModal'
 import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
@@ -18,6 +19,10 @@ export default function ProductsClient() {
   const [meta, setMeta] = useState<Meta>({ page: 1, limit: 10, total: 0, totalPages: 0 })
   const [fetchError, setFetchError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  // Backlog cliente (2026-09-28) — almacenista ve el catálogo solo-lectura
+  // salvo un modal chico de edición de barcode (ver BarcodeModal).
+  const [isAlmacenista, setIsAlmacenista] = useState(false)
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null)
   const [ready, setReady] = useState(false)
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
@@ -32,6 +37,7 @@ export default function ProductsClient() {
   useEffect(() => {
     const user = getUserInfo()
     setIsAdmin(user?.role === 'admin')
+    setIsAlmacenista(user?.role === 'almacenista')
   }, [])
 
   async function loadProducts() {
@@ -172,7 +178,7 @@ export default function ProductsClient() {
   }, [meta.page, meta.totalPages])
 
   const thCls = 'px-4 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.1em] text-[#7C7169]'
-  const colSpan = 10 + (isAdmin ? 1 : 0) + (isInvoice ? 1 : 0)
+  const colSpan = 10 + (isAdmin || isAlmacenista ? 1 : 0) + (isInvoice ? 1 : 0)
 
   if (!ready) return null
 
@@ -311,12 +317,13 @@ export default function ProductsClient() {
               {isInvoice && <th className={thCls}>{t('prod_colAmount')}</th>}
               <th className={thCls}>{t('prod_colStock')}</th>
               <th className={thCls}>{t('prod_colQb')}</th>
-              {isAdmin && <th className={`${thCls} w-12`}></th>}
+              {(isAdmin || isAlmacenista) && <th className={`${thCls} w-12`}></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--ec-divider)]">
             {products.map(p => (
               <ProductRow key={p.id} product={p} isAdmin={isAdmin} onEdit={setEditProduct}
+                canEditBarcode={isAlmacenista} onEditBarcode={setBarcodeProduct}
                 isInvoice={isInvoice}
                 qty={qtyMap[p.id] ?? 0}
                 rate={rateMap[p.id] ?? p.price}
@@ -393,6 +400,14 @@ export default function ProductsClient() {
           product={editProduct}
           onClose={() => setEditProduct(null)}
           onSaved={() => { setEditProduct(null); loadProducts() }}
+        />
+      )}
+
+      {barcodeProduct && (
+        <BarcodeModal
+          product={barcodeProduct}
+          onClose={() => setBarcodeProduct(null)}
+          onSaved={() => { setBarcodeProduct(null); loadProducts() }}
         />
       )}
 

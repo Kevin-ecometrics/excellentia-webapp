@@ -544,7 +544,10 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                     <p className="truncate text-sm font-semibold text-[var(--ec-ink)]">{item.name}</p>
                                     <p className="text-xs text-[var(--ec-faint)]">
                                       {item.sku ?? item.barcode ?? '—'}{item.unit && ` · ${item.unit}`}
-                                      {forStop && ` · ${forStop.customer_name ?? '—'}`}
+                                      {/* Backlog cliente (2026-09-28) — route_stop_id ahora es
+                                          opcional (carga general del camión, sin cliente
+                                          todavía) — se muestra explícito en vez de omitir el dato. */}
+                                      {' · '}{forStop ? (forStop.customer_name ?? '—') : t('wh_unassignedLoad')}
                                     </p>
                                     <p className="mt-0.5 text-[11px] text-[var(--ec-success-ink)]">
                                       {t('wh_loadedOn')} {fmtDate(item.created_at)}

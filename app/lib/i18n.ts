@@ -129,6 +129,7 @@ export const translations = {
     // Product Modal
     modal_editProd:       'Edit product',
     modal_newProd:        'New product',
+    modal_editBarcode:    'Edit barcode',
     modal_name:           'Name *',
     modal_shortName:      'Short name (ticket)',
     modal_shortNamePh:    'Shown on printed ticket instead of full name',
@@ -502,6 +503,7 @@ export const translations = {
     wh_loadedOn:           'Cargado el',
     wh_loadedBy:           'por',
     wh_loadedConfirmed:    'confirmado en buen estado',
+    wh_unassignedLoad:     'Sin asignar',
     wh_backfillTitle:      'Stock sin lote',
     wh_backfillHint:       'Productos con stock que nunca pasó por Recepción — no se pueden cargar a una ruta hasta que tengan un lote. Esto no cambia el stock, solo lo respalda con un lote para que el FIFO lo pueda usar.',
     wh_backfillButton:     'Ver stock sin lote',
@@ -677,6 +679,7 @@ export const translations = {
     // Product Modal
     modal_editProd:       'Edit product',
     modal_newProd:        'New product',
+    modal_editBarcode:    'Edit barcode',
     modal_name:           'Name *',
     modal_shortName:      'Short name (ticket)',
     modal_shortNamePh:    'Shown on printed ticket instead of full name',
@@ -1050,6 +1053,7 @@ export const translations = {
     wh_loadedOn:           'Loaded on',
     wh_loadedBy:           'by',
     wh_loadedConfirmed:    'confirmed in good condition',
+    wh_unassignedLoad:     'Unassigned',
     wh_backfillTitle:      'Stock without a lot',
     wh_backfillHint:       'Products with stock that never went through Receiving — they can\'t be loaded onto a route until they have a lot. This does not change the stock, it only backs it with a lot so FIFO can use it.',
     wh_backfillButton:     'View stock without a lot',

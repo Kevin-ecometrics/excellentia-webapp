@@ -7,6 +7,10 @@ interface Props {
   product: Product
   isAdmin: boolean
   onEdit: (product: Product) => void
+  // Backlog cliente (2026-09-28) — almacenista solo puede editar barcode,
+  // via un modal chico separado del ProductModal completo (admin-only).
+  canEditBarcode?: boolean
+  onEditBarcode?: (product: Product) => void
   qty?: number
   rate?: number
   isInvoice?: boolean
@@ -14,7 +18,7 @@ interface Props {
   onRateChange?: (id: number, rate: number) => void
 }
 
-export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvoice = false, onQtyChange, onRateChange }: Props) {
+export function ProductRow({ product, isAdmin, onEdit, canEditBarcode = false, onEditBarcode, qty = 0, rate = 0, isInvoice = false, onQtyChange, onRateChange }: Props) {
   const { t } = useLang()
   const stockColor =
     product.stock === 0 ? 'text-[var(--ec-danger)]' :
@@ -168,6 +172,20 @@ export function ProductRow({ product, isAdmin, onEdit, qty = 0, rate = 0, isInvo
           <button
             onClick={() => onEdit(product)}
             title="Edit product"
+            className="rounded p-1.5 text-[var(--ec-faint)] hover:bg-[var(--ec-surface-alt)] hover:text-[var(--ec-ink)] transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </td>
+      )}
+      {!isAdmin && canEditBarcode && (
+        <td className="px-4 py-3">
+          <button
+            onClick={() => onEditBarcode?.(product)}
+            title="Editar barcode"
             className="rounded p-1.5 text-[var(--ec-faint)] hover:bg-[var(--ec-surface-alt)] hover:text-[var(--ec-ink)] transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
