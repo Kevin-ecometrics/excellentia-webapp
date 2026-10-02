@@ -419,3 +419,7 @@ esto).
 - **Campo `disclaimer` de Settings sin uso real** — ver nota en "Términos y condiciones en el modal Ticket (QR)" más arriba. Decidir si se saca del formulario de Settings o se deja.
 - **`/settings` no redirige a un operador** que entre por URL directa (a diferencia de `/dashboard`, que sí hace `window.location.href = '/orders'` si `role !== 'admin'`) — el backend GET tampoco tiene `adminOnly`. No es grave (solo lee nombre/dirección de la empresa) pero es inconsistente con el resto de páginas admin-only.
 - **Falta el desglose "Vendido" por producto en `/warehouse`** — el admin ve cuánto se cargó y cuánto volvió por producto (sección Devoluciones), pero no cuánto se vendió de cada uno; ese dato ya lo calcula el backend (`GET /api/routes/:id/returns/expected`, el mismo endpoint que usa `RouteReturnsActivity` en Android) pero la webapp todavía no lo consume. Preguntado por el usuario el 2026-08-31, ofrecido pero no implementado todavía.
+
+## "Ruta terminada" (2026-10-01)
+
+En `/warehouse` (`WarehouseClient.tsx`): badge Lista/En preparacion en rutas PLANNED, boton "Ruta terminada"/"Reabrir carga" debajo de lo cargado (`POST /api/routes/:id/ready|reopen`) y la opcion "En ruta" del selector de estado se deshabilita sin `ready_at`. Textos `wh_markReady`, `wh_reopenLoad`, etc. en `app/lib/i18n.ts`. Detalle en `excellentia/CLAUDE.md`.

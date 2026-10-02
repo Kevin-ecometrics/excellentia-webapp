@@ -21,6 +21,9 @@ export interface RouteRow {
   // devoluciones para esta ruta (null = todavía no, sea que haya algo para
   // devolver o no). Distingue "no revisado" de "revisado, nada que volvió".
   returns_reviewed_at: string | null
+  // "Ruta terminada" (2026-10-01) — el almacén marcó la carga como lista;
+  // hasta entonces (null) el operador no puede iniciar la ruta.
+  ready_at: string | null
   created_at: string
   updated_at: string
 }

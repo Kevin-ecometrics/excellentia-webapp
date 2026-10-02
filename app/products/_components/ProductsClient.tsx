@@ -8,6 +8,7 @@ import BarcodeModal from './BarcodeModal'
 import PricingInfoModal from './PricingInfoModal'
 import { getUserInfo, apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import ConfirmModal from '@/app/warehouse/_components/ConfirmModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -26,6 +27,9 @@ export default function ProductsClient() {
   const [ready, setReady] = useState(false)
   const [search, setSearch] = useState('')
   const [syncing, setSyncing] = useState(false)
+  // Modal informativo antes de sincronizar: el botón solo sirve para traer lo
+  // creado en QBO; lo creado desde la app ya se sincroniza solo.
+  const [showSyncInfo, setShowSyncInfo] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
@@ -142,6 +146,7 @@ export default function ProductsClient() {
       setSyncMsg({ text: t('prod_syncDone'), ok: true })
     } finally {
       setSyncing(false)
+      setShowSyncInfo(false)
       setTimeout(() => setSyncMsg(null), 4000)
     }
   }
@@ -210,7 +215,7 @@ export default function ProductsClient() {
           </button>
           {isAdmin && (
             <button
-              onClick={handleSync}
+              onClick={() => setShowSyncInfo(true)}
               disabled={syncing}
               className="flex items-center gap-1.5 rounded px-4 py-2.5 text-sm font-extrabold bg-[var(--ec-gold)] text-primary active:scale-[0.98] transition disabled:opacity-60"
             >
@@ -237,6 +242,16 @@ export default function ProductsClient() {
       </div>
 
       {/* Alerts */}
+      {showSyncInfo && (
+        <ConfirmModal
+          title={t('prod_syncInfoTitle')}
+          body={t('prod_syncInfoBody')}
+          confirming={syncing}
+          onConfirm={handleSync}
+          onCancel={() => setShowSyncInfo(false)}
+        />
+      )}
+
       {syncMsg && (
         <div className={`mb-4 rounded px-4 py-3 text-sm font-medium ${syncMsg.ok ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-danger-bg)] text-[var(--ec-danger)]'}`}>
           {syncMsg.text}

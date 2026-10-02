@@ -187,6 +187,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
   const [pendingStatus, setPendingStatus] = useState<{ routeId: number; newStatus: string } | null>(null)
   const [pendingCancelId, setPendingCancelId] = useState<number | null>(null)
   const [confirmingStatus, setConfirmingStatus] = useState(false)
+  // "Ruta terminada" (2026-10-01) — marcar/reabrir la carga de una ruta PLANNED.
+  const [pendingReady, setPendingReady] = useState<{ routeId: number; action: 'ready' | 'reopen' } | null>(null)
 
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
@@ -301,6 +303,27 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
     }
   }
 
+  async function confirmReadyChange() {
+    if (!pendingReady) return
+    const { routeId, action } = pendingReady
+    setConfirmingStatus(true)
+    try {
+      const res = await apiFetch(`${API}/api/routes/${routeId}/${action}`, { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Error ${res.status}`)
+      }
+      flash(t(action === 'ready' ? 'wh_readyDone' : 'wh_reopenDone'), true)
+      refreshAll(routeId)
+      setPendingReady(null)
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Error updating route', false)
+      setPendingReady(null)
+    } finally {
+      setConfirmingStatus(false)
+    }
+  }
+
   async function confirmCancel() {
     if (pendingCancelId == null) return
     const routeId = pendingCancelId
@@ -339,6 +362,15 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
           confirming={confirmingStatus}
           onConfirm={confirmStatusChange}
           onCancel={() => setPendingStatus(null)}
+        />
+      )}
+      {pendingReady && (
+        <ConfirmModal
+          title={t(pendingReady.action === 'ready' ? 'wh_confirmReadyTitle' : 'wh_confirmReopenTitle')}
+          body={t(pendingReady.action === 'ready' ? 'wh_confirmReadyBody' : 'wh_confirmReopenBody')}
+          confirming={confirmingStatus}
+          onConfirm={confirmReadyChange}
+          onCancel={() => setPendingReady(null)}
         />
       )}
       {pendingCancelId != null && (
@@ -399,6 +431,13 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                         <span className={`inline-block rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${STATUS_BADGE[route.status]}`}>
                           {t(`wh_status_${route.status}` as any)}
                         </span>
+                        {/* "Ruta terminada" — solo mientras sigue PLANNED: lista (el
+                            operador ya puede iniciarla) o en preparación. */}
+                        {route.status === 'PLANNED' && (
+                          <span className={`inline-block rounded px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.1em] uppercase ${route.ready_at ? 'bg-[var(--ec-success-bg)] text-[var(--ec-success-ink)]' : 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]'}`}>
+                            {t(route.ready_at ? 'wh_readyBadge' : 'wh_preparingBadge')}
+                          </span>
+                        )}
                         {/* Fase 115 — solo se marca DIRECT (la excepción);
                             MULTI_STOP es el flujo de siempre, sin badge. */}
                         {route.route_type === 'DIRECT' && (
@@ -445,7 +484,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                   className="rounded border border-[var(--ec-border-strong)] bg-white px-2.5 py-1.5 text-xs font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-50"
                                 >
                                   {nextStatusOptions(detail.status).map(s => (
-                                    <option key={s} value={s}>{t(`wh_status_${s}` as any)}</option>
+                                    // El backend rechaza iniciar una ruta sin "Ruta terminada" — se deshabilita acá para no dejar al admin chocar con el 400.
+                                    <option key={s} value={s} disabled={s === 'IN_PROGRESS' && detail.status === 'PLANNED' && !detail.ready_at}>{t(`wh_status_${s}` as any)}</option>
                                   ))}
                                 </select>
                                 <button onClick={() => setEditingRoute(route)}
@@ -479,9 +519,16 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                             <p className="mb-3 rounded border border-[var(--ec-border)] bg-white px-3 py-2 text-xs text-[var(--ec-muted)]">{detail.notes}</p>
                           )}
 
-                          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_stops')}</p>
+                          {/* Ruta "desde cero" (no DIRECT, sin paradas): el almacén no
+                              sabe a qué clientes irán los choferes — se oculta el
+                              apartado. Mismo criterio que Android. */}
+                          {!(detail.route_type !== 'DIRECT' && detail.stops.length === 0) && (
+                            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.12em] text-[var(--ec-faint)]">{t('wh_stops')}</p>
+                          )}
                           {detail.stops.length === 0 ? (
-                            <p className="pb-4 text-sm text-[var(--ec-faint)]">{t('wh_noStops')}</p>
+                            detail.route_type === 'DIRECT' && (
+                              <p className="pb-4 text-sm text-[var(--ec-faint)]">{t('wh_noStops')}</p>
+                            )
                           ) : (
                             <div className="mb-4 space-y-2">
                               {[...detail.stops].sort((a, b) => a.position - b.position).map((stop, i) => (
@@ -547,7 +594,8 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                       {/* Backlog cliente (2026-09-28) — route_stop_id ahora es
                                           opcional (carga general del camión, sin cliente
                                           todavía) — se muestra explícito en vez de omitir el dato. */}
-                                      {' · '}{forStop ? (forStop.customer_name ?? '—') : t('wh_unassignedLoad')}
+                                      {(forStop || detail.stops.length > 0 || detail.route_type === 'DIRECT') &&
+                                        <>{' · '}{forStop ? (forStop.customer_name ?? '—') : t('wh_unassignedLoad')}</>}
                                     </p>
                                     <p className="mt-0.5 text-[11px] text-[var(--ec-success-ink)]">
                                       {t('wh_loadedOn')} {fmtDate(item.created_at)}
@@ -561,6 +609,31 @@ export default function WarehouseClient({ initialRoutes, fetchError }: Props) {
                                 </div>
                                 )
                               })}
+                            </div>
+                          )}
+
+                          {/* "Ruta terminada" (2026-10-01) — cierra la carga: hasta
+                              que el almacén la marca, el operador no puede iniciar
+                              la ruta. Solo con la ruta PLANNED y sin devoluciones
+                              revisadas; el backend exige además al menos un producto. */}
+                          {/* Sin productos cargados no se muestra (el backend también lo
+                              rechaza); ya marcada, siempre — para poder reabrir la carga. */}
+                          {detail.status === 'PLANNED' && !detail.returns_reviewed_at && (detail.ready_at || detail.items.length > 0) && (
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--ec-border)] bg-white px-3 py-3">
+                              <p className="min-w-0 flex-1 text-xs text-[var(--ec-muted)]">
+                                {t(detail.ready_at ? 'wh_readyLockedHint' : 'wh_readyHint')}
+                              </p>
+                              {detail.ready_at ? (
+                                <button onClick={() => setPendingReady({ routeId: detail.id, action: 'reopen' })}
+                                  className="shrink-0 rounded border border-[var(--ec-border-strong)] bg-white px-4 py-2 text-xs font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)] transition">
+                                  {t('wh_reopenLoad')}
+                                </button>
+                              ) : (
+                                <button onClick={() => setPendingReady({ routeId: detail.id, action: 'ready' })}
+                                  className="shrink-0 rounded bg-primary px-4 py-2 text-xs font-bold text-white hover:opacity-90 transition">
+                                  {t('wh_markReady')}
+                                </button>
+                              )}
                             </div>
                           )}
 
