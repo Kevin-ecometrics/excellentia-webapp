@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Product } from '../page'
 import { apiFetch } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import PendingPreOrdersConfirm, { fetchPendingPreOrders, type PendingPreOrder } from './PendingPreOrdersConfirm'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -23,10 +24,27 @@ export default function BarcodeModal({ product, onClose, onSaved }: Props) {
   const [barcode, setBarcode] = useState(product.barcode ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Pre-órdenes pendientes que contienen el producto, cuando se le cambia el barcode
+  // — null = sin aviso. El backend las actualiza solas al guardar; esto solo avisa.
+  const [pendingPreOrders, setPendingPreOrders] = useState<PendingPreOrder[] | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if ((barcode.trim() || null) !== (product.barcode ?? null)) {
+      setSaving(true)
+      const affected = await fetchPendingPreOrders(product.id)
+      setSaving(false)
+      if (affected.length > 0) {
+        setPendingPreOrders(affected)
+        return
+      }
+    }
+    await saveBarcode()
+  }
+
+  async function saveBarcode() {
+    setPendingPreOrders(null)
     setSaving(true)
     try {
       const res = await apiFetch(`${API}/api/products/${product.id}/barcode`, {
@@ -87,6 +105,15 @@ export default function BarcodeModal({ product, onClose, onSaved }: Props) {
           </div>
         </form>
       </div>
+
+      {pendingPreOrders && (
+        <PendingPreOrdersConfirm
+          preOrders={pendingPreOrders}
+          saving={saving}
+          onConfirm={saveBarcode}
+          onCancel={() => setPendingPreOrders(null)}
+        />
+      )}
     </div>
   )
 }

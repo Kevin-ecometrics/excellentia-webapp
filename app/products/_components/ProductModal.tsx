@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import type { Product } from '../page'
 import { apiFetch } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import PendingPreOrdersConfirm, { fetchPendingPreOrders, type PendingPreOrder } from './PendingPreOrdersConfirm'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -26,6 +27,10 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
   // en vez de cerrarlo de una, para que el admin no se entere recién cuando
   // vuelva a abrir el producto y vea el dato viejo en QuickBooks.
   const [qbWarning, setQbWarning] = useState('')
+  // Pre-órdenes pendientes que contienen el producto, cuando se está cambiando su
+  // nombre/barcode — null = sin aviso. Mientras hay lista se muestra el panel de
+  // confirmación y todavía no se guardó nada.
+  const [pendingPreOrders, setPendingPreOrders] = useState<PendingPreOrder[] | null>(null)
 
   useEffect(() => {
     if (product) {
@@ -75,6 +80,26 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
     setQbWarning('')
     if (!validate()) return
 
+    // Cambiar el nombre o el barcode de un producto que está en pre-órdenes
+    // pendientes las actualiza solas (ver updateProduct en el backend): se avisa
+    // antes de guardar para que no sea una sorpresa. Si la consulta falla no se
+    // bloquea el guardado — el aviso es informativo, la propagación igual ocurre.
+    const nameChanged = isEdit && form.name.trim() !== product!.name
+    const barcodeChanged = isEdit && (form.barcode.trim() || null) !== (product!.barcode ?? null)
+    if (nameChanged || barcodeChanged) {
+      setSaving(true)
+      const affected = await fetchPendingPreOrders(product!.id)
+      setSaving(false)
+      if (affected.length > 0) {
+        setPendingPreOrders(affected)
+        return
+      }
+    }
+    await saveProduct()
+  }
+
+  async function saveProduct() {
+    setPendingPreOrders(null)
     setSaving(true)
     try {
       const body: Record<string, unknown> = {
@@ -281,6 +306,15 @@ export default function ProductModal({ product, onClose, onSaved }: Props) {
           </div>
         </form>
       </div>
+
+      {pendingPreOrders && (
+        <PendingPreOrdersConfirm
+          preOrders={pendingPreOrders}
+          saving={saving}
+          onConfirm={saveProduct}
+          onCancel={() => setPendingPreOrders(null)}
+        />
+      )}
     </div>
   )
 }
