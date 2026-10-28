@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import type { OrderRow, CompanyInfo } from '../page'
 import { apiFetch, logout } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
@@ -19,6 +19,10 @@ interface Props {
   isAdmin: boolean
   company: CompanyInfo
   onRefresh: () => void | Promise<void>
+  // Día elegido en el selector de fecha ('YYYY-MM-DD') — la página trae del
+  // servidor las órdenes de ese día; null = las más recientes.
+  selectedDay: string | null
+  onSelectDay: (day: string | null) => void | Promise<void>
 }
 
 interface Batch {
@@ -58,6 +62,14 @@ interface DamageItem {
   unit_price?: number
   amount?: number
   unit?: string | null
+  // Descripción de QBO (GET /api/orders/damage/:batchId, 2026-10-23).
+  product_description?: string | null
+}
+
+// Nombre a mostrar en el ticket: descripción de QBO si existe, si no el
+// nombre (mismo criterio que el ticket impreso de Android).
+function ticketNameOf(description: string | null | undefined, name: string): string {
+  return description?.replace(/\s+/g, ' ').trim() || name
 }
 
 // Espeja isLbsUnit()/formatDamageQty() del backend (creditCalculator.ts) y de
@@ -149,7 +161,10 @@ function groupedForTicket(orders: OrderRow[]): GroupedTicketItem[] {
     if (!existing) {
       map.set(key, {
         barcode: o.barcode,
-        productName: o.product_name,
+        // 2026-10-23 — mismo criterio que el ticket impreso de Android
+        // (PrintService.withQboDescriptions): la descripción de QBO del
+        // producto si la tiene, si no el nombre de la venta.
+        productName: ticketNameOf(o.product_description, o.product_name),
         quantity: Number(o.quantity),
         total: Number(o.total),
         unit: o.unit ?? null,
@@ -288,6 +303,13 @@ function groupBatches(orders: OrderRow[]): Batch[] {
   })
 }
 
+// 'YYYY-MM-DD' → "Mon, Oct 19" (sin pasar por UTC: new Date('YYYY-MM-DD')
+// es medianoche UTC y en San Diego mostraría el día anterior).
+function fmtDayLabel(day: string) {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
 function isToday(iso: string) {
   const d = new Date(iso)
   const now = new Date()
@@ -296,7 +318,7 @@ function isToday(iso: string) {
     d.getDate() === now.getDate()
 }
 
-export default function OrdersClient({ orders, fetchError, isAdmin, company, onRefresh }: Props) {
+export default function OrdersClient({ orders, fetchError, isAdmin, company, onRefresh, selectedDay, onSelectDay }: Props) {
   const { t } = useLang()
 
   const statusCfg: Record<string, { label: string; cls: string }> = {
@@ -318,7 +340,58 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
     'On Account': 'bg-[var(--ec-warn-bg)] text-[var(--ec-warn-ink)]',
   }
 
-  const [dateFilter, setDateFilter] = useState<'TODAY' | 'ALL'>('TODAY')
+  // Descargar el ticket como PDF — abre una ventana con solo el ticket (mismo
+  // HTML y estilos que el modal) y lanza el diálogo de impresión, donde se
+  // elige "Guardar como PDF". Sin librerías nuevas: el navegador ya genera el
+  // PDF con la firma y el QR tal cual se ven.
+  const ticketRef = useRef<HTMLDivElement>(null)
+
+  function downloadTicket() {
+    if (!ticketRef.current || !ticketBatch) return
+    const win = window.open('', '_blank', 'width=420,height=800')
+    if (!win) return
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(el => el.outerHTML).join('\n')
+    const number = ticketBatch.invoiceId ?? ticketBatch.reservedInvoiceNumber ?? ticketBatch.batchId.slice(-8).toUpperCase()
+    const customer = (ticketBatch.customerName ?? '').replace(/[^\w\s-]/g, '').trim()
+    const title = `Ticket ${number}${customer ? ` - ${customer}` : ''}`
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      <base href="${window.location.origin}/">
+      <title>${title.replace(/</g, '')}</title>
+      ${styles}
+      <style>
+        body { background: #fff; margin: 0; padding: 16px; }
+        .ticket-print { max-width: 340px; margin: 0 auto; }
+        @media print { body { padding: 0; } .ticket-print { border: none !important; } }
+      </style>
+    </head><body><div class="ticket-print">${ticketRef.current.outerHTML}</div></body></html>`)
+    win.document.close()
+    // Esperar a que carguen los estilos y las imágenes (firma, QR) antes de
+    // imprimir. El setTimeout cubre el caso en que `load` ya se disparó antes
+    // de asignar el handler (document.write puede terminar muy rápido).
+    let printed = false
+    const go = () => {
+      if (printed) return
+      printed = true
+      const imgs = Array.from(win.document.images)
+      Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = img.onerror = r })))
+        .then(() => { win.focus(); win.print() })
+    }
+    win.onload = go
+    setTimeout(go, 1500)
+  }
+
+  const [dateFilter, setDateFilter] = useState<'TODAY' | 'ALL' | 'DAY'>(selectedDay ? 'DAY' : 'TODAY')
+  const [loadingDay, setLoadingDay] = useState(false)
+
+  async function chooseDateFilter(key: 'TODAY' | 'ALL' | 'DAY', day?: string) {
+    setStatusFilter('ALL')
+    setDateFilter(key)
+    const nextDay = key === 'DAY' ? (day ?? null) : null
+    if (nextDay === selectedDay) return
+    setLoadingDay(true)
+    try { await onSelectDay(nextDay) } finally { setLoadingDay(false) }
+  }
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [search, setSearch] = useState('')
@@ -376,6 +449,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
   const batches = useMemo(() => groupBatches(orders), [orders])
 
   const dateFiltered = useMemo(() =>
+    // 'DAY': el servidor ya devolvió solo ese día, no hace falta filtrar acá.
     dateFilter === 'TODAY' ? batches.filter(b => isToday(b.createdAt)) : batches
   , [batches, dateFilter])
 
@@ -511,8 +585,16 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
+          <button onClick={downloadTicket}
+            className="mb-3 flex items-center gap-1.5 rounded border border-[var(--ec-border-strong)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--ec-ink)] hover:bg-[var(--ec-surface-alt)]">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {t('tkt_download')}
+          </button>
           {/* Ticket — same format as printed physical ticket */}
-          <div className="p-5 font-mono text-[11px] leading-5 text-[var(--ec-ink)] bg-white rounded border border-[var(--ec-border)]">
+          <div ref={ticketRef} className="p-5 font-mono text-[11px] leading-5 text-[var(--ec-ink)] bg-white rounded border border-[var(--ec-border)]">
             {/* Company header */}
             <p className="font-bold">{company.company_name}</p>
             <p>{company.subtitle}</p>
@@ -586,7 +668,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                 <p className="font-bold">{t('tkt_courtesySummary')}</p>
                 {ticketBatch.orders.filter(o => !!o.is_courtesy).map((o, i) => (
                   <p key={i} className="pl-2">
-                    {o.product_name}: {formatCourtesyQty(displayUnitsOf(o.quantity, o.unit, o.case_qty), o.unit)} · {fmt(-Number(o.total))}
+                    {ticketNameOf(o.product_description, o.product_name)}: {formatCourtesyQty(displayUnitsOf(o.quantity, o.unit, o.case_qty), o.unit)} · {fmt(-Number(o.total))}
                   </p>
                 ))}
               </>
@@ -599,7 +681,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                 <p className="font-bold">{t('tkt_negSale')}</p>
                 {ticketDamageItems.map((d, i) => (
                   <p key={i} className="pl-2">
-                    {d.product_name}: {formatDamageQty(d.qty, d.unit)} · {fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}
+                    {ticketNameOf(d.product_description, d.product_name)}: {formatDamageQty(d.qty, d.unit)} · {fmt(-(d.amount ?? d.qty * (d.unit_price ?? 0)))}
                   </p>
                 ))}
               </>
@@ -751,7 +833,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
           <p className="mt-1.5 text-sm text-[var(--ec-muted)]">
             {dateFilter === 'TODAY'
               ? t('ord_todaySubtitle').replace('{n}', String(dateFiltered.length)).replace('{total}', String(batches.length))
-              : t('ord_allSubtitle').replace('{total}', String(batches.length))}
+              : dateFilter === 'DAY' && selectedDay
+                ? t('ord_daySubtitle').replace('{n}', String(dateFiltered.length)).replace('{date}', fmtDayLabel(selectedDay))
+                : t('ord_allSubtitle').replace('{total}', String(batches.length))}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -802,7 +886,7 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
         {/* Fecha */}
         <div className="flex rounded border border-[var(--ec-border-strong)] bg-white overflow-hidden">
           {(['TODAY', 'ALL'] as const).map(key => (
-            <button key={key} onClick={() => { setDateFilter(key); setStatusFilter('ALL') }}
+            <button key={key} onClick={() => chooseDateFilter(key)} disabled={loadingDay}
               className={`px-3.5 py-2 text-xs font-bold transition ${
                 dateFilter === key
                   ? 'bg-primary text-white'
@@ -812,6 +896,15 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
             </button>
           ))}
         </div>
+        {/* Día puntual — se pide al servidor, no se filtra sobre lo ya cargado */}
+        <input type="date" value={dateFilter === 'DAY' && selectedDay ? selectedDay : ''}
+          max={new Date().toLocaleDateString('en-CA')}
+          title={t('ord_pickDay')} disabled={loadingDay}
+          onChange={e => { if (e.target.value) chooseDateFilter('DAY', e.target.value) }}
+          className={`rounded border px-3 py-1.5 text-xs font-bold focus:border-primary focus:outline-none ${
+            dateFilter === 'DAY' ? 'border-primary bg-primary-50 text-[var(--ec-ink)]' : 'border-[var(--ec-border-strong)] bg-white text-[var(--ec-muted)]'
+          }`} />
+        {loadingDay && <span className="text-xs text-[var(--ec-faint)]">…</span>}
 
         {/* Status */}
         <div className="flex gap-1.5 flex-wrap">
@@ -1148,7 +1241,9 @@ export default function OrdersClient({ orders, fetchError, isAdmin, company, onR
                     ? t('ord_emptyFilter')
                     : dateFilter === 'TODAY'
                       ? t('ord_emptyToday')
-                      : t('ord_emptyAll')}
+                      : dateFilter === 'DAY'
+                        ? t('ord_emptyDay')
+                        : t('ord_emptyAll')}
                 </td>
               </tr>
             )}

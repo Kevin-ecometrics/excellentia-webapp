@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { CompanySettings } from '../page'
 import { apiFetch, logout, getUserInfo } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import CreditReasonsCard from './CreditReasonsCard'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -455,6 +456,9 @@ export default function SettingsClient({ settings, fetchError }: Props) {
           </div>
         </div>
       )}
+
+      {/* Credit reasons — admin only, catálogo credit_reasons */}
+      {isAdmin && <CreditReasonsCard onFlash={flash} />}
 
       {invoiceConfirm != null && invoiceCounter != null && (
         <InvoiceCounterConfirmModal

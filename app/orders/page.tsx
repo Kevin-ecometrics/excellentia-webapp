@@ -51,6 +51,9 @@ export interface OrderRow {
   // Fase 120 (addendum) — vencimiento aproximado: el más próximo entre los
   // lotes ACTIVOS del producto hoy, no el lote real vendido en esta línea.
   nearest_expiration: string | null
+  // Descripción de QBO del producto (2026-10-23) — el ticket la muestra en
+  // vez del nombre cuando existe (ver groupedForTicket en OrdersClient).
+  product_description: string | null
 }
 
 export interface CompanyInfo {
@@ -69,16 +72,28 @@ export default function OrdersPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [company, setCompany] = useState<CompanyInfo>({ company_name: 'EXCELLENTIA', subtitle: 'Sale Ticket', address: null, phone: null, city: null })
   const [ready, setReady] = useState(false)
+  // Día elegido en el filtro de fecha ('YYYY-MM-DD', zona del navegador) o
+  // null = vista por defecto (las más recientes). Antes solo se traían las
+  // últimas 200 líneas y "Hoy"/"Todas" filtraban sobre eso — con unos días de
+  // uso, las ventas de días anteriores (ej. el lunes) ya no entraban.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
-  async function fetchOrders() {
+  async function fetchOrders(day: string | null = selectedDay) {
+    let ordersUrl = `${API}/api/orders?limit=500`
+    if (day) {
+      const from = new Date(`${day}T00:00:00`).toISOString()
+      const to = new Date(`${day}T23:59:59.999`).toISOString()
+      ordersUrl = `${API}/api/orders?limit=2000&date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`
+    }
     const [ordersRes, settingsRes] = await Promise.allSettled([
-      apiFetch(`${API}/api/orders?limit=200`),
+      apiFetch(ordersUrl),
       apiFetch(`${API}/api/settings`),
     ])
 
     if (ordersRes.status === 'fulfilled') {
       if (ordersRes.value.status === 401) { logout(); return }
       if (ordersRes.value.ok) {
+        setFetchError('')
         try { setOrders((await ordersRes.value.json()).data ?? []) } catch {}
       } else {
         setFetchError(`Error ${ordersRes.value.status}`)
@@ -101,5 +116,8 @@ export default function OrdersPage() {
 
   if (!ready) return null
 
-  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={isAdmin} company={company} onRefresh={fetchOrders} />
+  return <OrdersClient orders={orders} fetchError={fetchError} isAdmin={isAdmin} company={company}
+    onRefresh={() => fetchOrders()}
+    selectedDay={selectedDay}
+    onSelectDay={day => { setSelectedDay(day); return fetchOrders(day) }} />
 }

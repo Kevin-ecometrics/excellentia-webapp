@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { apiFetch, logout, getUserInfo } from '@/app/lib/auth'
 import { useLang } from '@/app/_components/LangProvider'
+import SyncRecoveryModal from './SyncRecoveryModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -111,13 +112,20 @@ export default function InventoryClient() {
   const [backfillMsg, setBackfillMsg] = useState('')
   const [deletingLotId, setDeletingLotId] = useState<number | null>(null)
 
-  useEffect(() => { setIsAdmin(getUserInfo()?.role === 'admin') }, [])
+  // Reintentar / recuperar stock: admin o almacenista (backend: warehouseOnly).
+  // Backfill sigue siendo solo admin (isAdmin).
+  const [canSyncRetry, setCanSyncRetry] = useState(false)
+
+  useEffect(() => {
+    const role = getUserInfo()?.role
+    setIsAdmin(role === 'admin')
+    setCanSyncRetry(role === 'admin' || role === 'almacenista')
+  }, [])
 
   const [movements, setMovements] = useState<InventoryMovement[]>([])
   const [movementsError, setMovementsError] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState<MovementType | null>(null)
-  const [retryingMovementId, setRetryingMovementId] = useState<number | null>(null)
 
   const fetchLots = useCallback(() => {
     apiFetch(`${API}/api/warehouse/lots?status=ACTIVE`)
@@ -145,23 +153,16 @@ export default function InventoryClient() {
   useEffect(() => { fetchLots() }, [fetchLots])
   useEffect(() => { fetchMovements(dateFilter) }, [dateFilter, fetchMovements])
 
-  // Reintenta el push a QBO de un movimiento puntual que quedó qb_synced = 0
-  // — actualiza esa fila en memoria en vez de refetchear toda la lista.
-  function retryMovementSync(movementId: number) {
-    setRetryingMovementId(movementId)
-    apiFetch(`${API}/api/warehouse/movements/${movementId}/retry-sync`, { method: 'POST' })
-      .then(res => {
-        if (res.status === 401) { logout(); return null }
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        return res.json()
-      })
-      .then(data => {
-        if (!data) return
-        setMovements(prev => prev.map(m => m.id === movementId ? { ...m, qb_synced: data.qb_synced } : m))
-      })
-      .catch(() => {})
-      .finally(() => setRetryingMovementId(null))
-  }
+  // "Recuperar stock y sincronizar" — abre el panel de recuperación
+  // (SyncRecoveryModal) con todos los productos que tienen movimientos sin
+  // sincronizar: antes de mandar a QBO muestra si el stock se perdió y cuánto
+  // debería quedar.
+  const [recoveryOpen, setRecoveryOpen] = useState(false)
+  // Productos distintos (no líneas): una recepción de 40 cajas del mismo
+  // producto es 1 producto a recuperar, no 40.
+  const unsyncedCount = useMemo(
+    () => new Set(movements.filter(m => m.qb_synced === 0).map(m => m.product_id)).size,
+    [movements])
 
   function loadBackfillPreview() {
     setBackfillLoading(true)
@@ -444,7 +445,18 @@ export default function InventoryClient() {
                 {t('wh_allDates')}
               </button>
             )}
+            {canSyncRetry && unsyncedCount > 0 && (
+              <button onClick={() => setRecoveryOpen(true)}
+                className="ml-auto rounded border border-[var(--ec-danger)] bg-white px-3.5 py-2 text-xs font-bold text-[var(--ec-danger)] hover:bg-[var(--ec-danger-bg)]">
+                {t('wh_recoverButton').replace('{n}', String(unsyncedCount))}
+              </button>
+            )}
           </div>
+          {recoveryOpen && (
+            <SyncRecoveryModal productId={null}
+              onClose={() => setRecoveryOpen(false)}
+              onApplied={() => { fetchMovements(dateFilter); fetchLots() }} />
+          )}
 
           <div className="mb-4 flex flex-wrap gap-2">
             <button onClick={() => setTypeFilter(null)} className={pill(typeFilter === null)}>{t('ord_all')}</button>
@@ -461,8 +473,7 @@ export default function InventoryClient() {
               {typeFilter ? t('wh_noMovementsFilter') : t('wh_noMovements')}
             </div>
           ) : (
-            <MovementsList movements={filteredMovements} availableLotIds={availableLotIds} dayLabel={dayLabel} t={t}
-              isAdmin={isAdmin} retryingMovementId={retryingMovementId} onRetry={retryMovementSync} />
+            <MovementsList movements={filteredMovements} availableLotIds={availableLotIds} dayLabel={dayLabel} t={t} />
           )}
         </div>
       )}
@@ -471,15 +482,12 @@ export default function InventoryClient() {
 }
 
 function MovementsList({
-  movements, availableLotIds, dayLabel, t, isAdmin, retryingMovementId, onRetry,
+  movements, availableLotIds, dayLabel, t,
 }: {
   movements: InventoryMovement[]
   availableLotIds: Set<number>
   dayLabel: (dateKey: string) => string
   t: (key: any) => string
-  isAdmin: boolean
-  retryingMovementId: number | null
-  onRetry: (movementId: number) => void
 }) {
   let lastDateKey: string | null = null
   return (
@@ -517,12 +525,6 @@ function MovementsList({
                   <span className="rounded bg-[var(--ec-danger-bg)] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[.08em] uppercase text-[var(--ec-danger)]">
                     {t('wh_qbNotSynced')}
                   </span>
-                )}
-                {m.qb_synced === 0 && isAdmin && (
-                  <button onClick={() => onRetry(m.id)} disabled={retryingMovementId === m.id}
-                    className="text-[9.5px] font-extrabold uppercase tracking-[.08em] text-[var(--ec-danger)] hover:underline disabled:opacity-60">
-                    {retryingMovementId === m.id ? '…' : t('wh_retrySync')}
-                  </button>
                 )}
               </div>
               <p className={`mt-1.5 text-xs ${expiringSoon ? 'font-semibold text-[var(--ec-warn-ink)]' : 'text-[var(--ec-faint)]'}`}>
